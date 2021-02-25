@@ -101,7 +101,7 @@ class CliffordSimulator(
         )
 
         for moment in circuit:
-            ch_form_args.log_of_measurement_results = {}
+            ch_form_args.log_of_measurement_results = []
 
             for op in moment:
                 try:

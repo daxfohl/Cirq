@@ -13,7 +13,7 @@
 # limitations under the License.
 """Objects and methods for acting efficiently on a state vector."""
 
-from typing import Any, Iterable, Tuple, TYPE_CHECKING, Union, Dict
+from typing import Any, Iterable, Tuple, TYPE_CHECKING, Union, List
 
 import numpy as np
 
@@ -42,7 +42,7 @@ class ActOnStateVectorArgs(ActOnArgs):
         available_buffer: np.ndarray,
         axes: Iterable[int],
         prng: np.random.RandomState,
-        log_of_measurement_results: Dict[str, Any],
+        log_of_measurement_results: List[Any],
     ):
         """
         Args:
@@ -79,19 +79,6 @@ class ActOnStateVectorArgs(ActOnArgs):
         if new_target_tensor is self.available_buffer:
             self.available_buffer = self.target_tensor
         self.target_tensor = new_target_tensor
-
-    def record_measurement_result(self, key: str, value: Any):
-        """Adds a measurement result to the log.
-
-        Args:
-            key: The key the measurement result should be logged under. Note
-                that operations should only store results under keys they have
-                declared in a `_measurement_keys_` method.
-            value: The value to log for the measurement.
-        """
-        if key in self.log_of_measurement_results:
-            raise ValueError(f"Measurement already logged to key {key!r}")
-        self.log_of_measurement_results[key] = value
 
     def subspace_index(
         self, little_endian_bits_int: int = 0, *, big_endian_bits_int: int = 0

@@ -14,7 +14,7 @@
 """A protocol for implementing high performance clifford tableau evolutions
  for Clifford Simulator."""
 
-from typing import Any, Dict, Iterable, TYPE_CHECKING
+from typing import Any, Dict, Iterable, TYPE_CHECKING, List
 
 import numpy as np
 
@@ -42,7 +42,7 @@ class ActOnCliffordTableauArgs(ActOnArgs):
         tableau: CliffordTableau,
         axes: Iterable[int],
         prng: np.random.RandomState,
-        log_of_measurement_results: Dict[str, Any],
+        log_of_measurement_results: List[Any],
     ):
         """
         Args:

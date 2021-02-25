@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Dict, Iterable, TYPE_CHECKING
+from typing import Any, Dict, Iterable, TYPE_CHECKING, List
 
 import numpy as np
 
@@ -39,7 +39,7 @@ class ActOnStabilizerCHFormArgs(ActOnArgs):
         state: StabilizerStateChForm,
         axes: Iterable[int],
         prng: np.random.RandomState,
-        log_of_measurement_results: Dict[str, Any],
+        log_of_measurement_results: List[Any],
     ):
         """Initializes with the given state and the axes for the operation.
         Args:

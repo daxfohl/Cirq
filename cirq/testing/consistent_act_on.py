@@ -50,7 +50,7 @@ def state_vector_has_stabilizer(state_vector: np.ndarray, stabilizer: DensePauli
         available_buffer=np.empty_like(state_vector),
         axes=range(protocols.num_qubits(stabilizer)),
         prng=np.random.RandomState(),
-        log_of_measurement_results={},
+        log_of_measurement_results=[],
     )
     protocols.act_on(stabilizer, args)
     return np.allclose(args.target_tensor, state_vector)
@@ -164,7 +164,7 @@ def _final_clifford_tableau(
                 tableau=tableau,
                 axes=[qubit_map[qid] for qid in op.qubits],  # type: ignore
                 prng=np.random.RandomState(),
-                log_of_measurement_results={},
+                log_of_measurement_results=[],
             )
             protocols.act_on(op, args, allow_decompose=True)
         except TypeError:
@@ -195,7 +195,7 @@ def _final_stabilizer_state_ch_form(
                 state=stabilizer_ch_form,
                 axes=[qubit_map[qid] for qid in op.qubits],
                 prng=np.random.RandomState(),
-                log_of_measurement_results={},
+                log_of_measurement_results=[],
             )
             protocols.act_on(op, args, allow_decompose=True)
         except TypeError:

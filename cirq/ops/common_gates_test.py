@@ -308,25 +308,25 @@ def test_x_act_on_tableau():
         tableau=original_tableau.copy(),
         axes=[1],
         prng=np.random.RandomState(),
-        log_of_measurement_results={},
+        log_of_measurement_results=[],
     )
 
     cirq.act_on(cirq.X ** 0.5, args, allow_decompose=False)
     cirq.act_on(cirq.X ** 0.5, args, allow_decompose=False)
-    assert args.log_of_measurement_results == {}
+    assert args.log_of_measurement_results == []
     assert args.tableau == flipped_tableau
 
     cirq.act_on(cirq.X, args, allow_decompose=False)
-    assert args.log_of_measurement_results == {}
+    assert args.log_of_measurement_results == []
     assert args.tableau == original_tableau
 
     cirq.act_on(cirq.X ** 3.5, args, allow_decompose=False)
     cirq.act_on(cirq.X ** 3.5, args, allow_decompose=False)
-    assert args.log_of_measurement_results == {}
+    assert args.log_of_measurement_results == []
     assert args.tableau == flipped_tableau
 
     cirq.act_on(cirq.X ** 2, args, allow_decompose=False)
-    assert args.log_of_measurement_results == {}
+    assert args.log_of_measurement_results == []
     assert args.tableau == flipped_tableau
 
     foo = sympy.Symbol('foo')
@@ -358,28 +358,28 @@ def test_y_act_on_tableau():
         tableau=original_tableau.copy(),
         axes=[1],
         prng=np.random.RandomState(),
-        log_of_measurement_results={},
+        log_of_measurement_results=[],
     )
 
     cirq.act_on(cirq.Y ** 0.5, args, allow_decompose=False)
     cirq.act_on(cirq.Y ** 0.5, args, allow_decompose=False)
     cirq.act_on(iZGate(), args)
-    assert args.log_of_measurement_results == {}
+    assert args.log_of_measurement_results == []
     assert args.tableau == flipped_tableau
 
     cirq.act_on(cirq.Y, args, allow_decompose=False)
     cirq.act_on(iZGate(), args, allow_decompose=True)
-    assert args.log_of_measurement_results == {}
+    assert args.log_of_measurement_results == []
     assert args.tableau == original_tableau
 
     cirq.act_on(cirq.Y ** 3.5, args, allow_decompose=False)
     cirq.act_on(cirq.Y ** 3.5, args, allow_decompose=False)
     cirq.act_on(iZGate(), args)
-    assert args.log_of_measurement_results == {}
+    assert args.log_of_measurement_results == []
     assert args.tableau == flipped_tableau
 
     cirq.act_on(cirq.Y ** 2, args, allow_decompose=False)
-    assert args.log_of_measurement_results == {}
+    assert args.log_of_measurement_results == []
     assert args.tableau == flipped_tableau
 
     foo = sympy.Symbol('foo')
@@ -399,35 +399,35 @@ def test_z_h_act_on_tableau():
         tableau=original_tableau.copy(),
         axes=[1],
         prng=np.random.RandomState(),
-        log_of_measurement_results={},
+        log_of_measurement_results=[],
     )
 
     cirq.act_on(cirq.H, args, allow_decompose=False)
     cirq.act_on(cirq.Z ** 0.5, args, allow_decompose=False)
     cirq.act_on(cirq.Z ** 0.5, args, allow_decompose=False)
     cirq.act_on(cirq.H, args, allow_decompose=False)
-    assert args.log_of_measurement_results == {}
+    assert args.log_of_measurement_results == []
     assert args.tableau == flipped_tableau
 
     cirq.act_on(cirq.H, args, allow_decompose=False)
     cirq.act_on(cirq.Z, args, allow_decompose=False)
     cirq.act_on(cirq.H, args, allow_decompose=False)
-    assert args.log_of_measurement_results == {}
+    assert args.log_of_measurement_results == []
     assert args.tableau == original_tableau
 
     cirq.act_on(cirq.H, args, allow_decompose=False)
     cirq.act_on(cirq.Z ** 3.5, args, allow_decompose=False)
     cirq.act_on(cirq.Z ** 3.5, args, allow_decompose=False)
     cirq.act_on(cirq.H, args, allow_decompose=False)
-    assert args.log_of_measurement_results == {}
+    assert args.log_of_measurement_results == []
     assert args.tableau == flipped_tableau
 
     cirq.act_on(cirq.Z ** 2, args, allow_decompose=False)
-    assert args.log_of_measurement_results == {}
+    assert args.log_of_measurement_results == []
     assert args.tableau == flipped_tableau
 
     cirq.act_on(cirq.H ** 2, args, allow_decompose=False)
-    assert args.log_of_measurement_results == {}
+    assert args.log_of_measurement_results == []
     assert args.tableau == flipped_tableau
 
     foo = sympy.Symbol('foo')
@@ -450,11 +450,11 @@ def test_cx_act_on_tableau():
         tableau=original_tableau.copy(),
         axes=[0, 1],
         prng=np.random.RandomState(),
-        log_of_measurement_results={},
+        log_of_measurement_results=[],
     )
 
     cirq.act_on(cirq.CX, args, allow_decompose=False)
-    assert args.log_of_measurement_results == {}
+    assert args.log_of_measurement_results == []
     assert args.tableau.stabilizers() == [
         cirq.DensePauliString('ZIIII', coefficient=-1),
         cirq.DensePauliString('ZZIII', coefficient=-1),
@@ -471,11 +471,11 @@ def test_cx_act_on_tableau():
     ]
 
     cirq.act_on(cirq.CX, args, allow_decompose=False)
-    assert args.log_of_measurement_results == {}
+    assert args.log_of_measurement_results == []
     assert args.tableau == original_tableau
 
     cirq.act_on(cirq.CX ** 4, args, allow_decompose=False)
-    assert args.log_of_measurement_results == {}
+    assert args.log_of_measurement_results == []
     assert args.tableau == original_tableau
 
     foo = sympy.Symbol('foo')
@@ -495,11 +495,11 @@ def test_cz_act_on_tableau():
         tableau=original_tableau.copy(),
         axes=[0, 1],
         prng=np.random.RandomState(),
-        log_of_measurement_results={},
+        log_of_measurement_results=[],
     )
 
     cirq.act_on(cirq.CZ, args, allow_decompose=False)
-    assert args.log_of_measurement_results == {}
+    assert args.log_of_measurement_results == []
     assert args.tableau.stabilizers() == [
         cirq.DensePauliString('ZIIII', coefficient=-1),
         cirq.DensePauliString('IZIII', coefficient=-1),
@@ -516,11 +516,11 @@ def test_cz_act_on_tableau():
     ]
 
     cirq.act_on(cirq.CZ, args, allow_decompose=False)
-    assert args.log_of_measurement_results == {}
+    assert args.log_of_measurement_results == []
     assert args.tableau == original_tableau
 
     cirq.act_on(cirq.CZ ** 4, args, allow_decompose=False)
-    assert args.log_of_measurement_results == {}
+    assert args.log_of_measurement_results == []
     assert args.tableau == original_tableau
 
     foo = sympy.Symbol('foo')
@@ -579,7 +579,7 @@ def test_act_on_ch_form(input_gate_sequence, outcome):
         state=original_state.copy(),
         axes=axes,
         prng=np.random.RandomState(),
-        log_of_measurement_results={},
+        log_of_measurement_results=[],
     )
 
     flipped_state = cirq.StabilizerStateChForm(num_qubits=5, initial_state=23)

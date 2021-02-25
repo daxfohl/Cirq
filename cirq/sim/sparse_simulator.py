@@ -168,7 +168,7 @@ class Simulator(
 
     def _run(
         self, circuit: circuits.Circuit, param_resolver: study.ParamResolver, repetitions: int
-    ) -> Dict[str, np.ndarray]:
+    ) -> List[np.ndarray]:
         """See definition in `cirq.SimulatesSamples`."""
         param_resolver = param_resolver or study.ParamResolver({})
         resolved_circuit = protocols.resolve_parameters(circuit, param_resolver)
@@ -217,21 +217,21 @@ class Simulator(
         circuit: circuits.Circuit,
         qubit_order: 'cirq.QubitOrderOrList',
         repetitions: int,
-    ) -> Dict[str, np.ndarray]:
+    ) -> List[np.ndarray]:
         """Repeatedly simulate a circuit in order to produce samples."""
         if repetitions == 0:
-            return {key: np.empty(shape=[0, 1]) for key in protocols.measurement_keys(circuit)}
+            return [np.empty(shape=[0, 1]) for _ in protocols.measurement_keys(circuit)]
 
-        measurements: DefaultDict[str, List[np.ndarray]] = collections.defaultdict(list)
+        measurements: List[np.ndarray] = []
         for _ in range(repetitions):
             all_step_results = self._base_iterator(
                 circuit, initial_state=initial_state, qubit_order=qubit_order
             )
 
             for step_result in all_step_results:
-                for k, v in step_result.measurements.items():
-                    measurements[k].append(np.array(v, dtype=np.uint8))
-        return {k: np.array(v) for k, v in measurements.items()}
+                for v in step_result.measurements:
+                    measurements.append(np.array(v, dtype=np.uint8))
+        return [np.array(v) for v in measurements]
 
     def _base_iterator(
         self,
@@ -248,14 +248,14 @@ class Simulator(
             initial_state, num_qubits, qid_shape=qid_shape, dtype=self._dtype
         )
         if len(circuit) == 0:
-            yield SparseSimulatorStep(state, {}, qubit_map, self._dtype)
+            yield SparseSimulatorStep(state, [], qubit_map, self._dtype)
 
         sim_state = act_on_state_vector_args.ActOnStateVectorArgs(
             target_tensor=np.reshape(state, qid_shape),
             available_buffer=np.empty(qid_shape, dtype=self._dtype),
             axes=[],
             prng=self._prng,
-            log_of_measurement_results={},
+            log_of_measurement_results=[],
         )
 
         noisy_moments = self.noise.noisy_moments(circuit, sorted(circuit.all_qubits()))
@@ -267,7 +267,7 @@ class Simulator(
 
             yield SparseSimulatorStep(
                 state_vector=sim_state.target_tensor,
-                measurements=dict(sim_state.log_of_measurement_results),
+                measurements=sim_state.log_of_measurement_results,
                 qubit_map=qubit_map,
                 dtype=self._dtype,
             )

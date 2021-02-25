@@ -15,7 +15,7 @@
 
 import abc
 
-from typing import Any, Dict, Sequence, TYPE_CHECKING, Tuple, Generic, TypeVar
+from typing import Any, Dict, Sequence, TYPE_CHECKING, Tuple, Generic, TypeVar, List
 
 import numpy as np
 
@@ -46,7 +46,7 @@ class SimulatesIntermediateStateVector(
     def _create_simulator_trial_result(
         self,
         params: study.ParamResolver,
-        measurements: Dict[str, np.ndarray],
+        measurements: List[np.ndarray],
         final_simulator_state: 'StateVectorSimulatorState',
     ) -> 'StateVectorTrialResult':
         return StateVectorTrialResult(
@@ -164,7 +164,7 @@ class StateVectorTrialResult(state_vector.StateVectorMixin, simulator.Simulation
     def __init__(
         self,
         params: study.ParamResolver,
-        measurements: Dict[str, np.ndarray],
+        measurements: List[np.ndarray],
         final_simulator_state: StateVectorSimulatorState,
     ) -> None:
         super().__init__(
@@ -209,8 +209,7 @@ class StateVectorTrialResult(state_vector.StateVectorMixin, simulator.Simulation
         return self._final_simulator_state.state_vector.copy()
 
     def _value_equality_values_(self):
-        measurements = {k: v.tolist() for k, v in sorted(self.measurements.items())}
-        return (self.params, measurements, self._final_simulator_state)
+        return self.params, self.measurements, self._final_simulator_state
 
     def __str__(self) -> str:
         samples = super().__str__()

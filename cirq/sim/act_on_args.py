@@ -13,7 +13,7 @@
 # limitations under the License.
 """Objects and methods for acting efficiently on a state tensor."""
 
-from typing import Any, Iterable, Dict, Sequence
+from typing import Any, Iterable, Sequence, List
 
 import numpy as np
 
@@ -28,7 +28,7 @@ class ActOnArgs:
         self,
         axes: Iterable[int],
         prng: np.random.RandomState,
-        log_of_measurement_results: Dict[str, Any],
+        log_of_measurement_results: List[Any],
     ):
         """
         Args:
@@ -44,18 +44,13 @@ class ActOnArgs:
         self.prng = prng
         self.log_of_measurement_results = log_of_measurement_results
 
-    def record_measurement_result(self, key: str, value: Any):
+    def record_measurement_result(self, value: Any):
         """Adds a measurement result to the log.
 
         Args:
-            key: The key the measurement result should be logged under. Note
-                that operations should only store results under keys they have
-                declared in a `_measurement_keys_` method.
             value: The value to log for the measurement.
         """
-        if key in self.log_of_measurement_results:
-            raise ValueError(f"Measurement already logged to key {key!r}")
-        self.log_of_measurement_results[key] = value
+        self.log_of_measurement_results.append(value)
 
 
 def strat_act_on_from_apply_decompose(

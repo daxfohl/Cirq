@@ -92,14 +92,16 @@ class SimulatesSamples(work.Sampler, metaclass=abc.ABCMeta):
 
         _verify_unique_measurement_keys(program)
 
+        keys = [key for op in ops.flatten_op_tree(iter(program)) for key in protocols.measurement_keys(op)]
         trial_results = []  # type: List[study.Result]
         for param_resolver in study.to_resolvers(params):
             measurements = self._run(
                 circuit=program, param_resolver=param_resolver, repetitions=repetitions
             )
+            measurements1 = dict(zip(keys, measurements))
             trial_results.append(
                 study.Result.from_single_parameter_set(
-                    params=param_resolver, measurements=measurements
+                    params=param_resolver, measurements=measurements1
                 )
             )
         return trial_results
@@ -107,7 +109,7 @@ class SimulatesSamples(work.Sampler, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def _run(
         self, circuit: circuits.Circuit, param_resolver: study.ParamResolver, repetitions: int
-    ) -> Dict[str, np.ndarray]:
+    ) -> List[np.ndarray]:
         """Run a simulation, mimicking quantum hardware.
 
         Args:
@@ -418,10 +420,10 @@ class SimulatesIntermediateState(
             all_step_results = self.simulate_moment_steps(
                 program, param_resolver, qubit_order, initial_state
             )
-            measurements = {}  # type: Dict[str, np.ndarray]
+            measurements = []  # type: List[np.ndarray]
             for step_result in all_step_results:
-                for k, v in step_result.measurements.items():
-                    measurements[k] = np.array(v, dtype=np.uint8)
+                for v in step_result.measurements:
+                    measurements.append(np.array(v, dtype=np.uint8))
             trial_results.append(
                 self._create_simulator_trial_result(
                     params=param_resolver,
@@ -510,8 +512,6 @@ class SimulatesIntermediateState(
 
         Args:
             circuit: The circuit to simulate.
-            param_resolver: A ParamResolver for determining values of
-                Symbols.
             qubit_order: Determines the canonical ordering of the qubits. This
                 is often used in specifying the initial state, i.e. the
                 ordering of the computational basis states.
@@ -528,7 +528,7 @@ class SimulatesIntermediateState(
     def _create_simulator_trial_result(
         self,
         params: study.ParamResolver,
-        measurements: Dict[str, np.ndarray],
+        measurements: List[np.ndarray],
         final_simulator_state: TSimulatorState,
     ) -> TSimulationTrialResult:
         """This method can be implemented to create a trial result.
@@ -553,8 +553,8 @@ class StepResult(Generic[TSimulatorState], metaclass=abc.ABCMeta):
             results, ordered by the qubits that the measurement operates on.
     """
 
-    def __init__(self, measurements: Optional[Dict[str, List[int]]] = None) -> None:
-        self.measurements = measurements or collections.defaultdict(list)
+    def __init__(self, measurements: List[np.ndarray]) -> None:
+        self.measurements = measurements
 
     @abc.abstractmethod
     def _simulator_state(self) -> TSimulatorState:
@@ -598,7 +598,7 @@ class StepResult(Generic[TSimulatorState], metaclass=abc.ABCMeta):
         measurement_ops: List[ops.GateOperation],
         repetitions: int = 1,
         seed: 'cirq.RANDOM_STATE_OR_SEED_LIKE' = None,
-    ) -> Dict[str, np.ndarray]:
+    ) -> List[np.ndarray]:
         """Samples from the system at this point in the computation.
 
         Note that this does not collapse the state vector.
@@ -651,7 +651,7 @@ class StepResult(Generic[TSimulatorState], metaclass=abc.ABCMeta):
         indexed_sample = self.sample(measured_qubits, repetitions, seed=seed)
 
         # Extract results for each measurement.
-        results: Dict[str, np.ndarray] = {}
+        results: List[np.ndarray] = []
         qubits_to_index = {q: i for i, q in enumerate(measured_qubits)}
         for op in measurement_ops:
             gate = cast(ops.MeasurementGate, op.gate)
@@ -661,7 +661,7 @@ class StepResult(Generic[TSimulatorState], metaclass=abc.ABCMeta):
                 out[:, i] = indexed_sample[:, qubits_to_index[q]]
                 if inv_mask[i]:
                     out[:, i] ^= out[:, i] < 2
-            results[gate.key] = out
+            results.append(out)
 
         return results
 
@@ -686,7 +686,7 @@ class SimulationTrialResult:
     def __init__(
         self,
         params: study.ParamResolver,
-        measurements: Dict[str, np.ndarray],
+        measurements: List[np.ndarray],
         final_simulator_state: Any,
     ) -> None:
         self.params = params
@@ -705,7 +705,7 @@ class SimulationTrialResult:
             separator = ' ' if np.max(vals) >= 10 else ''
             return separator.join(str(int(v)) for v in vals)
 
-        results = sorted([(key, bitstring(val)) for key, val in self.measurements.items()])
+        results = sorted([(i, bitstring(val)) for i, val in enumerate(self.measurements)])
         if not results:
             return '(no measurements)'
         return ' '.join([f'{key}={val}' for key, val in results])
@@ -719,8 +719,8 @@ class SimulationTrialResult:
             p.text(str(self))
 
     def _value_equality_values_(self) -> Any:
-        measurements = {k: v.tolist() for k, v in sorted(self.measurements.items())}
-        return (self.params, measurements, self._final_simulator_state)
+        measurements = {k: v.tolist() for k, v in enumerate(self.measurements)}
+        return self.params, measurements, self._final_simulator_state
 
     @property
     def qubit_map(self) -> Dict[ops.Qid, int]:

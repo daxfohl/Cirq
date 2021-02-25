@@ -40,7 +40,7 @@ def test_unitary_fallback():
         tableau=original_tableau.copy(),
         axes=[1],
         prng=np.random.RandomState(),
-        log_of_measurement_results={},
+        log_of_measurement_results=[],
     )
 
     cirq.act_on(UnitaryXGate(), args)
@@ -50,14 +50,14 @@ def test_unitary_fallback():
         tableau=original_tableau.copy(),
         axes=[1],
         prng=np.random.RandomState(),
-        log_of_measurement_results={},
+        log_of_measurement_results=[],
     )
     cirq.act_on(UnitaryYGate(), args)
     expected_args = cirq.ActOnCliffordTableauArgs(
         tableau=original_tableau.copy(),
         axes=[1],
         prng=np.random.RandomState(),
-        log_of_measurement_results={},
+        log_of_measurement_results=[],
     )
     cirq.act_on(cirq.Y, expected_args)
     assert args.tableau == expected_args.tableau
@@ -74,7 +74,7 @@ def test_cannot_act():
         tableau=cirq.CliffordTableau(num_qubits=3),
         axes=[1],
         prng=np.random.RandomState(),
-        log_of_measurement_results={},
+        log_of_measurement_results=[],
     )
 
     with pytest.raises(TypeError, match="no _num_qubits_ or _qid_shape_"):

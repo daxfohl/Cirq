@@ -275,10 +275,10 @@ def test_act_on_state_vector():
         available_buffer=np.empty(shape=(2, 2, 2, 2, 2)),
         axes=[3, 1],
         prng=np.random.RandomState(),
-        log_of_measurement_results={},
+        log_of_measurement_results=[],
     )
     cirq.act_on(m, args)
-    assert args.log_of_measurement_results == {'out': [1, 0]}
+    assert args.log_of_measurement_results == [[1, 0]]
 
     args = cirq.ActOnStateVectorArgs(
         target_tensor=cirq.one_hot(
@@ -287,10 +287,10 @@ def test_act_on_state_vector():
         available_buffer=np.empty(shape=(2, 2, 2, 2, 2)),
         axes=[3, 1],
         prng=np.random.RandomState(),
-        log_of_measurement_results={},
+        log_of_measurement_results=[],
     )
     cirq.act_on(m, args)
-    assert args.log_of_measurement_results == {'out': [1, 1]}
+    assert args.log_of_measurement_results == [[1, 1]]
 
     args = cirq.ActOnStateVectorArgs(
         target_tensor=cirq.one_hot(
@@ -299,10 +299,10 @@ def test_act_on_state_vector():
         available_buffer=np.empty(shape=(2, 2, 2, 2, 2)),
         axes=[3, 1],
         prng=np.random.RandomState(),
-        log_of_measurement_results={},
+        log_of_measurement_results=[],
     )
     cirq.act_on(m, args)
-    assert args.log_of_measurement_results == {'out': [0, 1]}
+    assert args.log_of_measurement_results == [[0, 1]]
 
     with pytest.raises(ValueError, match="already logged to key"):
         cirq.act_on(m, args)
@@ -321,29 +321,29 @@ def test_act_on_clifford_tableau():
         tableau=cirq.CliffordTableau(num_qubits=5, initial_state=0),
         axes=[3, 1],
         prng=np.random.RandomState(),
-        log_of_measurement_results={},
+        log_of_measurement_results=[],
     )
     cirq.act_on(m, args)
-    assert args.log_of_measurement_results == {'out': [1, 0]}
+    assert args.log_of_measurement_results == [[1, 0]]
 
     args = cirq.ActOnCliffordTableauArgs(
         tableau=cirq.CliffordTableau(num_qubits=5, initial_state=8),
         axes=[3, 1],
         prng=np.random.RandomState(),
-        log_of_measurement_results={},
+        log_of_measurement_results=[],
     )
 
     cirq.act_on(m, args)
-    assert args.log_of_measurement_results == {'out': [1, 1]}
+    assert args.log_of_measurement_results == [[1, 1]]
 
     args = cirq.ActOnCliffordTableauArgs(
         tableau=cirq.CliffordTableau(num_qubits=5, initial_state=10),
         axes=[3, 1],
         prng=np.random.RandomState(),
-        log_of_measurement_results={},
+        log_of_measurement_results=[],
     )
     cirq.act_on(m, args)
-    assert args.log_of_measurement_results == {'out': [0, 1]}
+    assert args.log_of_measurement_results == [[0, 1]]
 
     with pytest.raises(ValueError, match="already logged to key"):
         cirq.act_on(m, args)
@@ -362,29 +362,29 @@ def test_act_on_stabilizer_ch_form():
         state=cirq.StabilizerStateChForm(num_qubits=5, initial_state=0),
         axes=[3, 1],
         prng=np.random.RandomState(),
-        log_of_measurement_results={},
+        log_of_measurement_results=[],
     )
     cirq.act_on(m, args)
-    assert args.log_of_measurement_results == {'out': [1, 0]}
+    assert args.log_of_measurement_results == [[1, 0]]
 
     args = cirq.ActOnStabilizerCHFormArgs(
         state=cirq.StabilizerStateChForm(num_qubits=5, initial_state=8),
         axes=[3, 1],
         prng=np.random.RandomState(),
-        log_of_measurement_results={},
+        log_of_measurement_results=[],
     )
 
     cirq.act_on(m, args)
-    assert args.log_of_measurement_results == {'out': [1, 1]}
+    assert args.log_of_measurement_results == [[1, 1]]
 
     args = cirq.ActOnStabilizerCHFormArgs(
         state=cirq.StabilizerStateChForm(num_qubits=5, initial_state=10),
         axes=[3, 1],
         prng=np.random.RandomState(),
-        log_of_measurement_results={},
+        log_of_measurement_results=[],
     )
     cirq.act_on(m, args)
-    assert args.log_of_measurement_results == {'out': [0, 1]}
+    assert args.log_of_measurement_results == [[0, 1]]
 
     with pytest.raises(ValueError, match="already logged to key"):
         cirq.act_on(m, args)
@@ -401,10 +401,10 @@ def test_act_on_qutrit():
         available_buffer=np.empty(shape=(3, 3, 3, 3, 3)),
         axes=[3, 1],
         prng=np.random.RandomState(),
-        log_of_measurement_results={},
+        log_of_measurement_results=[],
     )
     cirq.act_on(m, args)
-    assert args.log_of_measurement_results == {'out': [2, 2]}
+    assert args.log_of_measurement_results == [[2, 2]]
 
     args = cirq.ActOnStateVectorArgs(
         target_tensor=cirq.one_hot(
@@ -413,10 +413,10 @@ def test_act_on_qutrit():
         available_buffer=np.empty(shape=(3, 3, 3, 3, 3)),
         axes=[3, 1],
         prng=np.random.RandomState(),
-        log_of_measurement_results={},
+        log_of_measurement_results=[],
     )
     cirq.act_on(m, args)
-    assert args.log_of_measurement_results == {'out': [2, 1]}
+    assert args.log_of_measurement_results == [[2, 1]]
 
     args = cirq.ActOnStateVectorArgs(
         target_tensor=cirq.one_hot(
@@ -425,7 +425,7 @@ def test_act_on_qutrit():
         available_buffer=np.empty(shape=(3, 3, 3, 3, 3)),
         axes=[3, 1],
         prng=np.random.RandomState(),
-        log_of_measurement_results={},
+        log_of_measurement_results=[],
     )
     cirq.act_on(m, args)
-    assert args.log_of_measurement_results == {'out': [0, 2]}
+    assert args.log_of_measurement_results == [[0, 2]]

@@ -459,18 +459,18 @@ def test_reset_act_on():
         available_buffer=np.empty(shape=(2, 2, 2, 2, 2)),
         axes=[1],
         prng=np.random.RandomState(),
-        log_of_measurement_results={},
+        log_of_measurement_results=[],
     )
 
     cirq.act_on(cirq.ResetChannel(), args)
-    assert args.log_of_measurement_results == {}
+    assert args.log_of_measurement_results == []
     np.testing.assert_allclose(
         args.target_tensor,
         cirq.one_hot(index=(1, 0, 1, 1, 1), shape=(2, 2, 2, 2, 2), dtype=np.complex64),
     )
 
     cirq.act_on(cirq.ResetChannel(), args)
-    assert args.log_of_measurement_results == {}
+    assert args.log_of_measurement_results == []
     np.testing.assert_allclose(
         args.target_tensor,
         cirq.one_hot(index=(1, 0, 1, 1, 1), shape=(2, 2, 2, 2, 2), dtype=np.complex64),

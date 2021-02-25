@@ -62,7 +62,7 @@ class StabilizerSampler(sampler.Sampler):
                 CliffordTableau(num_qubits=len(axes_map)),
                 axes=(),
                 prng=self._prng,
-                log_of_measurement_results={},
+                log_of_measurement_results=[],
             )
             for op in circuit.all_operations():
                 state.axes = tuple(axes_map[q] for q in op.qubits)

@@ -33,7 +33,7 @@ def test_decomposed_fallback():
         available_buffer=np.empty((2, 2, 2), dtype=np.complex64),
         axes=[1],
         prng=np.random.RandomState(),
-        log_of_measurement_results={},
+        log_of_measurement_results=[],
     )
 
     cirq.act_on(Composite(), args)
@@ -51,7 +51,7 @@ def test_cannot_act():
         available_buffer=np.empty((2, 2, 2), dtype=np.complex64),
         axes=[1],
         prng=np.random.RandomState(),
-        log_of_measurement_results={},
+        log_of_measurement_results=[],
     )
 
     with pytest.raises(TypeError, match="Failed to act"):
@@ -78,7 +78,7 @@ def test_act_using_probabilistic_single_qubit_channel():
         available_buffer=np.empty_like(initial_state),
         axes=[2],
         prng=mock_prng,
-        log_of_measurement_results={},
+        log_of_measurement_results=[],
     )
     cirq.act_on(ProbabilisticSorX(), args)
     np.testing.assert_allclose(
@@ -97,7 +97,7 @@ def test_act_using_probabilistic_single_qubit_channel():
         available_buffer=np.empty_like(initial_state),
         axes=[2],
         prng=mock_prng,
-        log_of_measurement_results={},
+        log_of_measurement_results=[],
     )
     cirq.act_on(ProbabilisticSorX(), args)
     np.testing.assert_allclose(
@@ -134,7 +134,7 @@ def test_act_using_adaptive_two_qubit_channel():
             available_buffer=np.empty_like(state),
             axes=[1, 3],
             prng=mock_prng,
-            log_of_measurement_results={},
+            log_of_measurement_results=[],
         )
         cirq.act_on(Decay11(), args)
         return args.target_tensor
@@ -196,7 +196,7 @@ def test_probability_comes_up_short_results_in_fallback():
         available_buffer=np.empty(2, dtype=np.complex64),
         axes=[0],
         prng=mock_prng,
-        log_of_measurement_results={},
+        log_of_measurement_results=[],
     )
 
     cirq.act_on(Short(), args)

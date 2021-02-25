@@ -158,7 +158,7 @@ class DensityMatrixSimulator(
 
     def _run(
         self, circuit: circuits.Circuit, param_resolver: study.ParamResolver, repetitions: int
-    ) -> Dict[str, np.ndarray]:
+    ) -> List[np.ndarray]:
         """See definition in `cirq.SimulatesSamples`."""
         param_resolver = param_resolver or study.ParamResolver({})
         resolved_circuit = protocols.resolve_parameters(circuit, param_resolver)
@@ -175,7 +175,7 @@ class DensityMatrixSimulator(
 
     def _run_sweep_sample(
         self, circuit: circuits.Circuit, repetitions: int
-    ) -> Dict[str, np.ndarray]:
+    ) -> List[np.ndarray]:
         for step_result in self._base_iterator(
             circuit=circuit,
             qubit_order=ops.QubitOrder.DEFAULT,
@@ -190,22 +190,24 @@ class DensityMatrixSimulator(
 
     def _run_sweep_repeat(
         self, circuit: circuits.Circuit, repetitions: int
-    ) -> Dict[str, np.ndarray]:
-        measurements = {}  # type: Dict[str, List[np.ndarray]]
+    ) -> List[np.ndarray]:
+        measurements = []  # type: List[List[np.ndarray]]
         if repetitions == 0:
             for _, op, _ in circuit.findall_operations_with_gate_type(ops.MeasurementGate):
-                measurements[protocols.measurement_key(op)] = np.empty([0, 1])
+                measurements.append(np.empty([0, 1]))
 
-        for _ in range(repetitions):
+        for i in range(repetitions):
             all_step_results = self._base_iterator(
                 circuit, qubit_order=ops.QubitOrder.DEFAULT, initial_state=0
             )
+            j = 0
             for step_result in all_step_results:
-                for k, v in step_result.measurements.items():
-                    if not k in measurements:
-                        measurements[k] = []
-                    measurements[k].append(np.array(v, dtype=np.uint8))
-        return {k: np.array(v) for k, v in measurements.items()}
+                for v in step_result.measurements:
+                    if i == 0:
+                        measurements.append([])
+                    measurements[j].append(np.array(v, dtype=np.uint8))
+                    j = j + 1
+        return [np.array(v) for v in measurements]
 
     def _base_iterator(
         self,
@@ -224,7 +226,7 @@ class DensityMatrixSimulator(
             initial_matrix = initial_matrix.copy()
 
         if len(circuit) == 0:
-            yield DensityMatrixStepResult(initial_matrix, {}, qubit_map, self._dtype)
+            yield DensityMatrixStepResult(initial_matrix, [], qubit_map, self._dtype)
             return
 
         tensor = initial_matrix.reshape(qid_shape * 2)
@@ -234,7 +236,7 @@ class DensityMatrixSimulator(
             axes=[],
             qid_shape=qid_shape,
             prng=self._prng,
-            log_of_measurement_results={},
+            log_of_measurement_results=[],
         )
 
         noisy_moments = self.noise.noisy_moments(circuit, sorted(circuit.all_qubits()))
@@ -256,7 +258,7 @@ class DensityMatrixSimulator(
 
             yield DensityMatrixStepResult(
                 density_matrix=sim_state.target_tensor,
-                measurements=dict(sim_state.log_of_measurement_results),
+                measurements=sim_state.log_of_measurement_results,
                 qubit_map=qubit_map,
                 dtype=self._dtype,
             )
@@ -265,7 +267,7 @@ class DensityMatrixSimulator(
     def _create_simulator_trial_result(
         self,
         params: study.ParamResolver,
-        measurements: Dict[str, np.ndarray],
+        measurements: List[np.ndarray],
         final_simulator_state: 'DensityMatrixSimulatorState',
     ) -> 'DensityMatrixTrialResult':
         return DensityMatrixTrialResult(
@@ -288,7 +290,7 @@ class DensityMatrixStepResult(simulator.StepResult['DensityMatrixSimulatorState'
     def __init__(
         self,
         density_matrix: np.ndarray,
-        measurements: Dict[str, np.ndarray],
+        measurements: List[np.ndarray],
         qubit_map: Dict[ops.Qid, int],
         dtype: Type[np.number] = np.complex64,
     ):
@@ -460,7 +462,7 @@ class DensityMatrixTrialResult(simulator.SimulationTrialResult):
     def __init__(
         self,
         params: study.ParamResolver,
-        measurements: Dict[str, np.ndarray],
+        measurements: List[np.ndarray],
         final_simulator_state: DensityMatrixSimulatorState,
     ) -> None:
         super().__init__(
@@ -472,8 +474,7 @@ class DensityMatrixTrialResult(simulator.SimulationTrialResult):
         )
 
     def _value_equality_values_(self) -> Any:
-        measurements = {k: v.tolist() for k, v in sorted(self.measurements.items())}
-        return (self.params, measurements, self._final_simulator_state)
+        return self.params, self.measurements, self._final_simulator_state
 
     def __str__(self) -> str:
         samples = super().__str__()

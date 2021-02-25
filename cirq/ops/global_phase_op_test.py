@@ -55,7 +55,7 @@ def test_act_on_ch_form(phase):
         state,
         [],
         prng=np.random.RandomState(),
-        log_of_measurement_results={},
+        log_of_measurement_results=[],
     )
     cirq.act_on(cirq.GlobalPhaseOperation(phase), args, allow_decompose=False)
     assert state.state_vector() == [[phase]]
