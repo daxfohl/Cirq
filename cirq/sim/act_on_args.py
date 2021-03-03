@@ -43,6 +43,7 @@ class ActOnArgs:
         self.axes = tuple(axes)
         self.prng = prng
         self.log_of_measurement_results = log_of_measurement_results
+        self.all_measurements: Dict[str, bool] = {}
 
     def measure(self, key, invert_mask):
         """Adds a measurement result to the log.
@@ -58,6 +59,7 @@ class ActOnArgs:
         if key in self.log_of_measurement_results:
             raise ValueError(f"Measurement already logged to key {key!r}")
         self.log_of_measurement_results[key] = corrected
+        self.all_measurements[key] = bits[0] == 1
 
     @abc.abstractmethod
     def perform_measurement(self) -> List[int]:

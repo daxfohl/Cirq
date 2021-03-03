@@ -17,6 +17,7 @@ from typing import Any, TYPE_CHECKING, Union
 
 from typing_extensions import Protocol
 
+from cirq.ops import Operation
 from cirq._doc import doc_private
 from cirq.type_workarounds import NotImplementedType
 
@@ -92,6 +93,11 @@ def act_on(
     Raises:
         TypeError: Failed to act `action` on `args`.
     """
+
+    if isinstance(action, Operation):
+        for tag in action.tags:
+            if str(tag).startswith('if_') and not args.all_measurements[tag[3:]]:
+                return
 
     action_act_on = getattr(action, '_act_on_', None)
     if action_act_on is not None:
