@@ -37,7 +37,7 @@ import cirq
 from cirq import circuits, study, ops, protocols, value
 from cirq.ops.dense_pauli_string import DensePauliString
 from cirq.protocols import act_on
-from cirq.sim import clifford, simulator
+from cirq.sim import clifford, simulator, act_on_args
 from cirq._compat import deprecated
 from cirq.sim.simulator import check_all_resolved
 
@@ -45,7 +45,7 @@ from cirq.sim.simulator import check_all_resolved
 class CliffordSimulator(
     simulator.SimulatesSamples,
     simulator.SimulatesIntermediateState[
-        'CliffordSimulatorStepResult', 'CliffordTrialResult', 'CliffordState'
+        'CliffordSimulatorStepResult', 'CliffordTrialResult', 'CliffordState', act_on_args.ActOnArgs
     ],
 ):
     """An efficient simulator for Clifford circuits."""

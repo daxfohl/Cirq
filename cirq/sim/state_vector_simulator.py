@@ -20,7 +20,7 @@ from typing import Any, Dict, Sequence, TYPE_CHECKING, Tuple, Generic, TypeVar
 import numpy as np
 
 from cirq import ops, study, value
-from cirq.sim import simulator, state_vector
+from cirq.sim import simulator, state_vector, act_on_args
 
 if TYPE_CHECKING:
     import cirq
@@ -33,7 +33,7 @@ class SimulatesIntermediateStateVector(
     Generic[TStateVectorStepResult],
     simulator.SimulatesAmplitudes,
     simulator.SimulatesIntermediateState[
-        TStateVectorStepResult, 'StateVectorTrialResult', 'StateVectorSimulatorState'
+        TStateVectorStepResult, 'StateVectorTrialResult', 'StateVectorSimulatorState', act_on_args.ActOnArgs
     ],
     metaclass=abc.ABCMeta,
 ):
