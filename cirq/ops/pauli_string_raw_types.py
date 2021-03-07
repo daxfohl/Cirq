@@ -29,6 +29,7 @@ TSelf_PauliStringGateOperation = TypeVar(
 
 class PauliStringGateOperation(raw_types.Operation, metaclass=abc.ABCMeta):
     def __init__(self, pauli_string: ps.PauliString) -> None:
+        super().__init__()
         self.pauli_string = pauli_string
 
     def validate_args(self, qubits: Sequence[raw_types.Qid]) -> None:

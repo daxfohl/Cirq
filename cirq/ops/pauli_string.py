@@ -149,6 +149,7 @@ class PauliString(raw_types.Operation, Generic[TKey]):
             ...                        qubit_pauli_map={a: cirq.X}))
             1j*Z(0)
         """
+        super().__init__()
         if qubit_pauli_map is not None:
             for v in qubit_pauli_map.values():
                 if not isinstance(v, pauli_gates.Pauli):
@@ -1113,6 +1114,9 @@ class SingleQubitPauliStringGateOperation(  # type: ignore
         # Note, this method is required or else superclasses' deserialization
         # would be used
         return cls(pauli=pauli, qubit=qubit)
+
+    def __repr__(self):
+        return gate_operation.GateOperation.__repr__(self)
 
 
 @value.value_equality(unhashable=True, manual_cls=True, approximate=True)

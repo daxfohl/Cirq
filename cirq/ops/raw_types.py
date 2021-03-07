@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """Basic types defining qubits, gates, and operations."""
-
+import copy
 from typing import (
     AbstractSet,
     Any,
@@ -387,6 +387,9 @@ class Operation(metaclass=abc.ABCMeta):
     effect into a qubit-independent Gate and the qubits it should be applied to.
     """
 
+    def __init__(self):
+        self._tags: Tuple[Hashable, ...] = ()
+
     @property
     def gate(self) -> Optional['cirq.Gate']:
         return None
@@ -419,14 +422,16 @@ class Operation(metaclass=abc.ABCMeta):
     @property
     def tags(self) -> Tuple[Hashable, ...]:
         """Returns a tuple of the operation's tags."""
-        return ()
+        return self._tags
 
     @property
-    def untagged(self) -> 'cirq.Operation':
+    def untagged(self: TSelf) -> TSelf:
         """Returns the underlying operation without any tags."""
-        return self
+        clone = copy.copy(self)
+        clone._tags = ()
+        return clone
 
-    def with_tags(self, *new_tags: Hashable) -> 'cirq.TaggedOperation':
+    def with_tags(self: TSelf, *new_tags: Hashable) -> TSelf:
         """Creates a new TaggedOperation, with this op and the specified tags.
 
         This method can be used to attach meta-data to specific operations
@@ -444,7 +449,9 @@ class Operation(metaclass=abc.ABCMeta):
         Args:
             new_tags: The tags to wrap this operation in.
         """
-        return TaggedOperation(self, *new_tags)
+        clone = copy.copy(self)
+        clone._tags = new_tags
+        return clone
 
     @deprecated_parameter(
         deadline='v0.11',
@@ -556,6 +563,35 @@ class Operation(metaclass=abc.ABCMeta):
             return NotImplemented
 
         return np.allclose(m12, m21, atol=atol)
+
+    def _circuit_diagram_info_(
+        self, args: 'cirq.CircuitDiagramInfoArgs'
+    ) -> 'cirq.CircuitDiagramInfo':
+        sub_op_info = self._circuit_diagram_info_base(args)
+        # Add tag to wire symbol if it exists.
+        if sub_op_info is not NotImplemented and args.include_tags and sub_op_info.wire_symbols and self._tags != ():
+            sub_op_info.wire_symbols = (
+                sub_op_info.wire_symbols[0] + str(list(self._tags)),
+            ) + sub_op_info.wire_symbols[1:]
+        return sub_op_info
+
+    def _circuit_diagram_info_base(self, args: 'cirq.CircuitDiagramInfoArgs') -> 'cirq.CircuitDiagramInfo':
+        raise NotImplementedError
+
+    def __str__(self) -> str:
+        if self._tags != ():
+            tag_repr = ','.join(repr(t) for t in self._tags)
+            return f'cirq.TaggedOperation({self._repr()}, {tag_repr})'
+        return self._repr()
+
+    def __repr__(self):
+        return str(self)
+
+    def _repr(self):
+        raise NotImplementedError
+
+    def _str(self):
+        raise NotImplementedError
 
 
 @value.value_equality
@@ -697,7 +733,7 @@ class TaggedOperation(Operation):
         )
         return TaggedOperation(resolved_op, *resolved_tags)
 
-    def _circuit_diagram_info_(
+    def _base_circuit_diagram_info(
         self, args: 'cirq.CircuitDiagramInfoArgs'
     ) -> 'cirq.CircuitDiagramInfo':
         sub_op_info = protocols.circuit_diagram_info(self.sub_operation, args, NotImplemented)

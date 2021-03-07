@@ -57,6 +57,7 @@ class GateOperation(raw_types.Operation):
             gate: The gate to apply.
             qubits: The qubits to operate on.
         """
+        super().__init__()
         gate.validate_args(qubits)
         self._gate = gate
         self._qubits = tuple(qubits)
@@ -89,7 +90,7 @@ class GateOperation(raw_types.Operation):
             return self
         return new_gate.on(*self.qubits)
 
-    def __repr__(self):
+    def _repr(self):
         if hasattr(self.gate, '_op_repr_'):
             result = self.gate._op_repr_(self.qubits)
             if result is not None and result is not NotImplemented:
@@ -107,7 +108,7 @@ class GateOperation(raw_types.Operation):
 
         return f'cirq.GateOperation(gate={self.gate!r}, qubits=[{qubit_args_repr}])'
 
-    def __str__(self) -> str:
+    def _str(self) -> str:
         qubits = ', '.join(str(e) for e in self.qubits)
         return f'{self.gate}({qubits})'
 
@@ -234,7 +235,7 @@ class GateOperation(raw_types.Operation):
         resolved_gate = protocols.resolve_parameters(self.gate, resolver, recursive)
         return self.with_gate(resolved_gate)
 
-    def _circuit_diagram_info_(
+    def _circuit_diagram_info_base(
         self, args: 'cirq.CircuitDiagramInfoArgs'
     ) -> 'cirq.CircuitDiagramInfo':
         return protocols.circuit_diagram_info(self.gate, args, NotImplemented)

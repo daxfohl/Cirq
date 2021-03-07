@@ -409,13 +409,12 @@ def test_tagged_operation_equality():
     op2 = cirq.Y(q1)
 
     eq.add_equality_group(op)
-    eq.add_equality_group(op.with_tags('tag1'), cirq.TaggedOperation(op, 'tag1'))
-    eq.add_equality_group(op2.with_tags('tag1'), cirq.TaggedOperation(op2, 'tag1'))
-    eq.add_equality_group(op.with_tags('tag2'), cirq.TaggedOperation(op, 'tag2'))
+    eq.add_equality_group(op.with_tags('tag1'))
+    eq.add_equality_group(op2.with_tags('tag1'))
+    eq.add_equality_group(op.with_tags('tag2'))
     eq.add_equality_group(
         op.with_tags('tag1', 'tag2'),
         op.with_tags('tag1').with_tags('tag2'),
-        cirq.TaggedOperation(op, 'tag1', 'tag2'),
     )
 
 
@@ -512,7 +511,7 @@ def test_circuit_diagram_tagged_global_phase():
 
     # Operation with no qubits and returns diagram info with no wire symbols
     class NoWireSymbols(cirq.GlobalPhaseOperation):
-        def _circuit_diagram_info_(
+        def _base_circuit_diagram_info(
             self, args: 'cirq.CircuitDiagramInfoArgs'
         ) -> 'cirq.CircuitDiagramInfo':
             return expected

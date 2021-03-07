@@ -43,12 +43,9 @@ class ControlledOperation(raw_types.Operation):
     This object is typically created via `operation.controlled_by(*qubits)`.
     """
 
-    def __init__(
-        self,
-        controls: Sequence['cirq.Qid'],
-        sub_operation: 'cirq.Operation',
-        control_values: Optional[Sequence[Union[int, Collection[int]]]] = None,
-    ):
+    def __init__(self, controls: Sequence['cirq.Qid'], sub_operation: 'cirq.Operation',
+                 control_values: Optional[Sequence[Union[int, Collection[int]]]] = None):
+        super().__init__()
         if control_values is None:
             control_values = ((1,),) * len(controls)
         if len(control_values) != len(controls):
@@ -213,7 +210,7 @@ class ControlledOperation(raw_types.Operation):
             return NotImplemented
         return ControlledOperation(self.controls, new_sub_op, self.control_values)
 
-    def _circuit_diagram_info_(
+    def _circuit_diagram_info_base(
         self, args: 'cirq.CircuitDiagramInfoArgs'
     ) -> Optional['protocols.CircuitDiagramInfo']:
         n = len(self.controls)
