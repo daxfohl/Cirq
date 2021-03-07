@@ -450,7 +450,7 @@ class Operation(metaclass=abc.ABCMeta):
             new_tags: The tags to wrap this operation in.
         """
         clone = copy.copy(self)
-        clone._tags = new_tags
+        clone._tags = *self._tags, *new_tags
         return clone
 
     @deprecated_parameter(

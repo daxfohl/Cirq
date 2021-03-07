@@ -45,7 +45,6 @@ class ControlledOperation(raw_types.Operation):
 
     def __init__(self, controls: Sequence['cirq.Qid'], sub_operation: 'cirq.Operation',
                  control_values: Optional[Sequence[Union[int, Collection[int]]]] = None):
-        super().__init__()
         if control_values is None:
             control_values = ((1,),) * len(controls)
         if len(control_values) != len(controls):

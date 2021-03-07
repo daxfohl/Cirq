@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import copy
 from typing import Any, Dict, Iterable, Optional, Tuple, Sequence, TYPE_CHECKING
 
 import numpy as np
@@ -74,9 +74,9 @@ class MeasurementGate(raw_types.Gate):
 
     def with_key(self, key: str) -> 'MeasurementGate':
         """Creates a measurement gate with a new key but otherwise identical."""
-        return MeasurementGate(
-            self.num_qubits(), key=key, invert_mask=self.invert_mask, qid_shape=self._qid_shape
-        )
+        clone = copy.copy(self)
+        clone.key = key
+        return clone
 
     def _with_measurement_key_mapping_(self, key_map: Dict[str, str]):
         if self.key not in key_map:

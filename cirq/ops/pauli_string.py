@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import cmath
+import copy
 import math
 import numbers
 from typing import (
@@ -107,12 +108,8 @@ document(
 
 @value.value_equality(approximate=True, manual_cls=True)
 class PauliString(raw_types.Operation, Generic[TKey]):
-    def __init__(
-        self,
-        *contents: 'cirq.PAULI_STRING_LIKE',
-        qubit_pauli_map: Optional[Dict[TKey, 'cirq.Pauli']] = None,
-        coefficient: Union[int, float, complex] = 1,
-    ):
+    def __init__(self, *contents: 'cirq.PAULI_STRING_LIKE', qubit_pauli_map: Optional[Dict[TKey, 'cirq.Pauli']] = None,
+                 coefficient: Union[int, float, complex] = 1):
         """Initializes a new PauliString.
 
         Args:
@@ -389,7 +386,7 @@ class PauliString(raw_types.Operation, Generic[TKey]):
         else:
             p.text(str(self))
 
-    def __repr__(self) -> str:
+    def _repr(self) -> str:
         ordered_qubits = sorted(self.qubits)
         prefix = ''
 
@@ -409,7 +406,7 @@ class PauliString(raw_types.Operation, Generic[TKey]):
             return f'({fused})'
         return fused
 
-    def __str__(self) -> str:
+    def _str(self) -> str:
         ordered_qubits = sorted(self.qubits)
         prefix = ''
 
@@ -1073,9 +1070,10 @@ class SingleQubitPauliStringGateOperation(  # type: ignore
     def with_qubits(self, *new_qubits: 'cirq.Qid') -> 'SingleQubitPauliStringGateOperation':
         if len(new_qubits) != 1:
             raise ValueError("len(new_qubits) != 1")
-        return SingleQubitPauliStringGateOperation(
-            cast(pauli_gates.Pauli, self.gate), new_qubits[0]
-        )
+        clone = copy.copy(self)
+        clone._qubit_pauli_map = {new_qubits[0]: self.pauli}
+        clone._qubits = new_qubits
+        return clone
 
     @property
     def pauli(self) -> pauli_gates.Pauli:
@@ -1114,9 +1112,6 @@ class SingleQubitPauliStringGateOperation(  # type: ignore
         # Note, this method is required or else superclasses' deserialization
         # would be used
         return cls(pauli=pauli, qubit=qubit)
-
-    def __repr__(self):
-        return gate_operation.GateOperation.__repr__(self)
 
 
 @value.value_equality(unhashable=True, manual_cls=True, approximate=True)

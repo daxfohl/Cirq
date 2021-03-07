@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """Basic types defining qubits, gates, and operations."""
-
+import copy
 import re
 from typing import (
     AbstractSet,
@@ -82,13 +82,10 @@ class GateOperation(raw_types.Operation):
         return new_gate.on(*self.qubits)
 
     def _with_measurement_key_mapping_(self, key_map: Dict[str, str]):
+        clone = copy.copy(self)
         new_gate = protocols.with_measurement_key_mapping(self.gate, key_map)
-        if new_gate is NotImplemented:
-            return NotImplemented
-        if new_gate is self.gate:
-            # As GateOperation is immutable, this can return the original.
-            return self
-        return new_gate.on(*self.qubits)
+        clone._gate = new_gate
+        return clone
 
     def _repr(self):
         if hasattr(self.gate, '_op_repr_'):
@@ -101,7 +98,7 @@ class GateOperation(raw_types.Operation):
 
         # Abbreviate when possible.
         dont_need_on = re.match(r'^[a-zA-Z0-9.()]+$', gate_repr)
-        if dont_need_on and self == self.gate.__call__(*self.qubits):
+        if dont_need_on and self.untagged == self.gate.__call__(*self.qubits):
             return f'{gate_repr}({qubit_args_repr})'
         if self == self.gate.on(*self.qubits):
             return f'{gate_repr}.on({qubit_args_repr})'
@@ -131,7 +128,7 @@ class GateOperation(raw_types.Operation):
         return tuple(sorted((k, frozenset(v)) for k, v in groups.items()))
 
     def _value_equality_values_(self):
-        return self.gate, self._group_interchangeable_qubits()
+        return self.gate, self._group_interchangeable_qubits(), self.tags
 
     def _qid_shape_(self):
         return self.gate._qid_shape_()
