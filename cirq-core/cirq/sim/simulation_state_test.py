@@ -103,24 +103,27 @@ def test_field_getters():
     assert args.qubit_map == {q: i for i, q in enumerate(cirq.LineQubit.range(2))}
 
 
-@pytest.mark.parametrize('exp', [-3, -2, -1, 0, 1, 2, 3])
-def test_ancilla(exp):
+@pytest.mark.parametrize('exp', [-4, -3, -2, -1, 0, 1, 2, 3, 4])
+@pytest.mark.parametrize('dim', [1, 2, 3, 4, 5])
+def test_ancilla(exp, dim):
     class AncillaX(cirq.Gate):
-        def __init__(self, exponent=1):
+        def __init__(self, exponent=1, dimension=2):
             self._exponent = exponent
+            self._dimension = dimension
 
-        def num_qubits(self) -> int:
-            return 1
+        def _qid_shape_(self):
+            return (self._dimension,)
 
         def _decompose_(self, qubits):
-            ancilla = cirq.NamedQubit('Ancilla')
-            yield cirq.X(ancilla) ** self._exponent
-            yield cirq.CX(ancilla, qubits[0])
-            yield cirq.X(ancilla) ** -self._exponent
+            from cirq.transformers.measurement_transformers import _ModAdd
+            ancilla = cirq.NamedQid('Ancilla', dimension=self._dimension)
+            yield cirq.XPowGate(exponent=self._exponent, dimension=self._dimension)(ancilla)
+            yield _ModAdd(dimension=self._dimension)(ancilla, qubits[0])
+            yield cirq.XPowGate(exponent=-self._exponent, dimension=self._dimension)(ancilla)
 
-    q = cirq.LineQubit(0)
-    test_circuit = cirq.Circuit(AncillaX(exp).on(q))
-    control_circuit = cirq.Circuit(cirq.XPowGate(exponent=exp).on(q))
+    q = cirq.LineQid(0, dimension=dim)
+    test_circuit = cirq.Circuit(AncillaX(exp, dim).on(q))
+    control_circuit = cirq.Circuit(cirq.XPowGate(exponent=exp, dimension=dim).on(q))
 
     test_sv = cirq.final_state_vector(test_circuit)
     control_sv = cirq.final_state_vector(control_circuit)
