@@ -103,32 +103,23 @@ def test_field_getters():
     assert args.qubit_map == {q: i for i, q in enumerate(cirq.LineQubit.range(2))}
 
 
-@pytest.mark.parametrize('exp', [-4, -3, -2, -1, 0, 1, 2, 3, 4])
-@pytest.mark.parametrize('dim', [1, 2, 3, 4, 5])
-def test_ancilla(exp, dim):
+@pytest.mark.parametrize('exp', list(range(-4, 5)))
+@pytest.mark.parametrize('dim', list(range(1, 6)))
+@pytest.mark.parametrize('resolve', [cirq.final_state_vector, cirq.final_density_matrix])
+def test_ancilla(exp, dim, resolve):
     class AncillaX(cirq.Gate):
-        def __init__(self, exponent=1, dimension=2):
-            self._exponent = exponent
-            self._dimension = dimension
-
         def _qid_shape_(self):
-            return (self._dimension,)
+            return (dim,)
 
         def _decompose_(self, qubits):
             from cirq.transformers.measurement_transformers import _ModAdd
-            ancilla = cirq.NamedQid('Ancilla', dimension=self._dimension)
-            yield cirq.XPowGate(exponent=self._exponent, dimension=self._dimension)(ancilla)
-            yield _ModAdd(dimension=self._dimension)(ancilla, qubits[0])
-            yield cirq.XPowGate(exponent=-self._exponent, dimension=self._dimension)(ancilla)
+            ancilla = cirq.NamedQid('Ancilla', dimension=dim)
+            yield cirq.XPowGate(exponent=exp, dimension=dim).on(ancilla)
+            yield _ModAdd(dimension=dim).on(ancilla, qubits[0])
+            yield cirq.XPowGate(exponent=-exp, dimension=dim).on(ancilla)
 
     q = cirq.LineQid(0, dimension=dim)
-    test_circuit = cirq.Circuit(AncillaX(exp, dim).on(q))
+    test_circuit = cirq.Circuit(AncillaX().on(q))
     control_circuit = cirq.Circuit(cirq.XPowGate(exponent=exp, dimension=dim).on(q))
 
-    test_sv = cirq.final_state_vector(test_circuit)
-    control_sv = cirq.final_state_vector(control_circuit)
-    assert np.allclose(test_sv, control_sv)
-
-    test_dm = cirq.final_density_matrix(test_circuit)
-    control_dm = cirq.final_density_matrix(control_circuit)
-    assert np.allclose(test_dm, control_dm)
+    assert np.allclose(resolve(test_circuit), resolve(control_circuit))
