@@ -174,11 +174,13 @@ class SimulationState(SimulationStateBase, Generic[TState], metaclass=abc.ABCMet
         return args
 
     def add_qubits(self: TSelf, qubits: Sequence['cirq.Qid']) -> TSelf:
+        if not qubits:
+            return self
         new_space = type(self)(qubits=qubits)  # type: ignore
         return self.kronecker_product(new_space, inplace=True)
 
     def remove_qubits(self: TSelf, qubits: Sequence['cirq.Qid']) -> TSelf:
-        return self.factor(qubits, inplace=True)[1]
+        return self if not qubits else self.factor(qubits, inplace=True)[1]
 
     def factor(
         self: TSelf, qubits: Sequence['cirq.Qid'], *, validate=True, atol=1e-07, inplace=False
@@ -303,14 +305,14 @@ def strat_act_on_from_apply_decompose(
     val: Any, args: 'cirq.SimulationState', qubits: Sequence['cirq.Qid']
 ) -> bool:
     operations, qubits1, _ = _try_decompose_into_operations_and_qubits(val)
+    if operations is None:
+        return NotImplemented
     assert len(qubits1) == len(qubits)
     qubit_map = {q: qubits[i] for i, q in enumerate(qubits1)}
     ancillas = list(set([q for op in operations for q in op.qubits if q not in qubits1]))
     for q in ancillas:
         qubit_map[q] = q
     args.add_qubits(ancillas)
-    if operations is None:
-        return NotImplemented
     for operation in operations:
         operation = operation.with_qubits(*[qubit_map[q] for q in operation.qubits])
         protocols.act_on(operation, args)
