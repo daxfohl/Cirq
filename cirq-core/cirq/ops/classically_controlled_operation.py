@@ -177,8 +177,11 @@ class ClassicallyControlledOperation(raw_types.Operation):
         return {'conditions': self._conditions, 'sub_operation': self._sub_operation}
 
     def _act_on_(self, sim_state: 'cirq.SimulationStateBase') -> bool:
-        if all(c.resolve(sim_state.classical_data) for c in self._conditions):
-            protocols.act_on(self._sub_operation, sim_state)
+        from cirq.sim import SimulationState
+
+        if not isinstance(sim_state, SimulationState):
+            return NotImplemented
+        sim_state.controlled_act(self._conditions, self._sub_operation)
         return True
 
     def _with_measurement_key_mapping_(

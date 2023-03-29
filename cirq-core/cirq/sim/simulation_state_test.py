@@ -123,3 +123,37 @@ def test_ancilla(exp, dim, resolve):
     control_circuit = cirq.Circuit(cirq.XPowGate(exponent=exp, dimension=dim).on(q))
 
     assert np.allclose(resolve(test_circuit), resolve(control_circuit))
+
+@pytest.mark.parametrize('state_type', [cirq.StateVectorSimulationState, cirq.DensityMatrixSimulationState])
+def test_basic(state_type):
+    from cirq.transformers.measurement_transformers import _MeasurementQid
+    q0, q1 = cirq.LineQubit.range(2)
+    state = state_type(qubits=[q0, q1])
+    state._deferred_mode = True
+    circuit = [
+        cirq.X(q0),
+        cirq.measure(q0, key='a'),
+        cirq.X(q1).with_classical_controls('a'),
+    ]
+    print()
+    for op in circuit:
+        cirq.act_on(op, state)
+        print(state)
+    state._deferred_mode = False
+
+    cirq.act_on(cirq.measure(q1, key='b'), state)
+    print(state)
+
+    q_ma = _MeasurementQid('a', q0)
+    control = [
+        cirq.X(q0),
+        cirq.CX(q0, q_ma),
+        cirq.CX(q_ma, q1),
+        cirq.measure(q_ma, key='a'),
+        cirq.measure(q1, key='b'),
+    ]
+    print()
+    state = state_type(qubits=[q0, q1, q_ma])
+    for op in control:
+        cirq.act_on(op, state)
+        print(state)

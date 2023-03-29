@@ -51,6 +51,7 @@ class SimulationState(SimulationStateBase, Generic[TState], metaclass=abc.ABCMet
         prng: Optional[np.random.RandomState] = None,
         qubits: Optional[Sequence['cirq.Qid']] = None,
         classical_data: Optional['cirq.ClassicalDataStore'] = None,
+        deferred_mode: bool = False
     ):
         """Inits SimulationState.
 
@@ -72,6 +73,7 @@ class SimulationState(SimulationStateBase, Generic[TState], metaclass=abc.ABCMet
             prng = cast(np.random.RandomState, np.random)
         self._prng = prng
         self._state = state
+        self._deferred_mode = deferred_mode
 
     @property
     def prng(self) -> np.random.RandomState:
@@ -99,12 +101,44 @@ class SimulationState(SimulationStateBase, Generic[TState], metaclass=abc.ABCMet
         Raises:
             ValueError: If a measurement key has already been logged to a key.
         """
+        if self._deferred_mode:
+            from cirq.transformers.measurement_transformers import _MeasurementQid
+            from cirq import ops
+            targets = [_MeasurementQid(key, q, 0) for q in qubits]
+            self.add_qubits(targets)
+            for q, target in zip(qubits, targets):
+                protocols.act_on(ops.CX(q, target), self)
+            return
         bits = self._perform_measurement(qubits)
         confused = self._confuse_result(bits, qubits, confusion_map)
         corrected = [bit ^ (bit < 2 and mask) for bit, mask in zip(confused, invert_mask)]
         self._classical_data.record_measurement(
             value.MeasurementKey.parse_serialized(key), corrected, qubits
         )
+
+    def controlled_act(self, conditions: Tuple['cirq.Condition', ...], sub_operation: 'cirq.Operation'):
+        from cirq.transformers.measurement_transformers import _MeasurementQid
+        if self._deferred_mode:
+            controls = []
+            for c in conditions:
+                if isinstance(c, value.KeyCondition):
+                    qubits = [q for q in self.qubits if isinstance(q, _MeasurementQid) and q._key == c.key]
+                    if len(qubits) != 1:
+                        # TODO: Multi-qubit conditions require
+                        # https://github.com/quantumlib/Cirq/issues/4512
+                        # Remember to update docstring above once this works.
+                        raise ValueError('Only single qubit conditions are allowed.')
+                    controls.extend(qubits)
+                else:
+                    raise ValueError('Only KeyConditions are allowed.')
+            op = sub_operation.without_classical_controls().controlled_by(
+                *controls, control_values=[tuple(range(1, q.dimension)) for q in controls]
+            )
+            protocols.act_on(op, self)
+            return
+
+        if all(c.resolve(self.classical_data) for c in conditions):
+            protocols.act_on(sub_operation, self)
 
     def get_axes(self, qubits: Sequence['cirq.Qid']) -> List[int]:
         return [self.qubit_map[q] for q in qubits]
