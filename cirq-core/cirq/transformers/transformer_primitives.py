@@ -204,7 +204,7 @@ def _map_operations_impl(
             curr_moments = [circuits.Moment()]
         new_moments.extend(curr_moments)
 
-    return _create_target_circuit_type([circuits.Moment(moment) for moment in new_moments], circuit)
+    return _create_target_circuit_type(new_moments, circuit)
 
 
 def map_operations(
