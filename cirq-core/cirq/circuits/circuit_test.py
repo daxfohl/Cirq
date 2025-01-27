@@ -800,7 +800,7 @@ def test_insert_op_tree_inline():
     op_tree_list = [
         (1, 1, [cirq.H(a), cirq.X(b)], [a, b]),
         (0, 0, [cirq.X(b)], [b]),
-        (4, 3, [cirq.H(b)], [b]),
+        (4, 2, [cirq.H(b)], [b]),
         (5, 3, [cirq.H(a)], [a]),
         (-2, 0, [cirq.X(b)], [b]),
         (-5, 0, [cirq.CZ(a, b)], [a]),
@@ -865,20 +865,13 @@ def test_insert_inline_near_start():
     c = cirq.Circuit([cirq.Moment(), cirq.Moment()])
 
     c.insert(1, cirq.X(a), strategy=cirq.InsertStrategy.INLINE)
-    assert c == cirq.Circuit([cirq.Moment([cirq.X(a)]), cirq.Moment()])
+    assert c == cirq.Circuit(cirq.Moment(), cirq.Moment(cirq.X(a)))
 
     c.insert(1, cirq.Y(a), strategy=cirq.InsertStrategy.INLINE)
-    assert c == cirq.Circuit([cirq.Moment([cirq.X(a)]), cirq.Moment([cirq.Y(a)]), cirq.Moment()])
+    assert c == cirq.Circuit(cirq.Moment(cirq.Y(a)), cirq.Moment(cirq.X(a)))
 
     c.insert(0, cirq.Z(b), strategy=cirq.InsertStrategy.INLINE)
-    assert c == cirq.Circuit(
-        [
-            cirq.Moment([cirq.Z(b)]),
-            cirq.Moment([cirq.X(a)]),
-            cirq.Moment([cirq.Y(a)]),
-            cirq.Moment(),
-        ]
-    )
+    assert c == cirq.Circuit([cirq.Moment(cirq.Z(b), cirq.Y(a)), cirq.Moment(cirq.X(a))])
 
 
 def test_insert_at_frontier_init():

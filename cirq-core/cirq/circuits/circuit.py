@@ -2119,11 +2119,10 @@ class Circuit(AbstractCircuit):
             return splitter_index
 
         if strategy is InsertStrategy.INLINE:
-            if 0 <= splitter_index - 1 < len(self._moments) and self._can_add_op_at(
-                splitter_index - 1, op
-            ):
+            if self._can_add_op_at(splitter_index, op):
+                return splitter_index
+            if splitter_index != 0 and self._can_add_op_at(splitter_index - 1, op):
                 return splitter_index - 1
-
             return self._pick_or_create_inserted_op_moment_index(
                 splitter_index, op, InsertStrategy.NEW
             )
@@ -2131,9 +2130,10 @@ class Circuit(AbstractCircuit):
         if strategy is InsertStrategy.EARLIEST:
             if self._can_add_op_at(splitter_index, op):
                 return self.earliest_available_moment(op, end_moment_index=splitter_index)
-
+            if splitter_index != 0 and self._can_add_op_at(splitter_index - 1, op):
+                return self.earliest_available_moment(op, end_moment_index=splitter_index - 1)
             return self._pick_or_create_inserted_op_moment_index(
-                splitter_index, op, InsertStrategy.INLINE
+                splitter_index, op, InsertStrategy.NEW
             )
 
         raise ValueError(f'Unrecognized append strategy: {strategy}')
@@ -2186,6 +2186,10 @@ class Circuit(AbstractCircuit):
                         batch.append(thing)
                         i += 1
                         break
+                if strategy is InsertStrategy.NEW:
+                    batch.append(thing)
+                    i += 1
+                    break
                 qs = thing.qubits
                 if batch_qubits.isdisjoint(qs):
                     batch.append(thing)
@@ -2202,6 +2206,7 @@ class Circuit(AbstractCircuit):
                 )
             ):
                 self._moments.insert(k, Moment())
+            max_p = 0
             for moment_or_op in batch:
                 if self._placement_cache:
                     p = self._placement_cache.append(moment_or_op)
@@ -2209,15 +2214,16 @@ class Circuit(AbstractCircuit):
                     p = k
                 else:
                     p = self._pick_or_create_inserted_op_moment_index(k, moment_or_op, strategy)
+                max_p = max(p, max_p)
                 if isinstance(moment_or_op, Moment):
                     self._moments.insert(p, moment_or_op)
                 elif p == len(self._moments):
                     self._moments.append(Moment(moment_or_op))
                 else:
                     self._moments[p] = self._moments[p].with_operation(moment_or_op)
-                k = max(k, p + 1)
                 if strategy is InsertStrategy.NEW_THEN_INLINE:
                     strategy = InsertStrategy.INLINE
+            k = max(k, max_p + 1)
         self._mutated(preserve_placement_cache=True)
         return k
 
