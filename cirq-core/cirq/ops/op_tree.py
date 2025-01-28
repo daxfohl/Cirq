@@ -175,13 +175,12 @@ def group_into_moment_compatible(inputs: Sequence[MOMENT_OR_OP]) -> Iterator[Lis
         batch = []
         batch_qubits: Set['cirq.Qid'] = set()
         while i < len(inputs):
-            thing = inputs[i]
-            qs = thing.qubits
-            if isinstance(thing, moment.Moment) or not batch_qubits.isdisjoint(qs):
+            mop = inputs[i]
+            qs = mop.qubits
+            if isinstance(mop, moment.Moment) or not batch_qubits.isdisjoint(qs):
                 yield batch
-                batch = []
                 break
-            batch.append(thing)
+            batch.append(mop)
             batch_qubits.update(qs)
             i += 1
     if batch:
