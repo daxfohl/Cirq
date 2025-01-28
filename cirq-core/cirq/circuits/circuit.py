@@ -2160,7 +2160,7 @@ class Circuit(AbstractCircuit):
                     # At least one of k or k-1 is free due to batch's moment insertion check above
                     p = k if self._can_add_op_at(k, moment_or_op) else k - 1
                     if strategy is InsertStrategy.EARLIEST:
-                        p = self.earliest_available_moment(moment_or_op, end_moment_index=k)
+                        p = self.earliest_available_moment(moment_or_op, end_moment_index=p)
                 # Place
                 if isinstance(moment_or_op, Moment):
                     self._moments.insert(p, moment_or_op)
