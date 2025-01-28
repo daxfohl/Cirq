@@ -2130,7 +2130,9 @@ class Circuit(AbstractCircuit):
         if strategy != InsertStrategy.EARLIEST or k != len(self._moments):
             self._placement_cache = None
         mops = list(ops.flatten_to_ops_or_moments(moment_or_operation_tree))
-        if strategy is InsertStrategy.NEW:
+        if self._placement_cache:
+            batches = [mops]
+        elif strategy is InsertStrategy.NEW:
             batches = [[mop] for mop in mops]
         else:
             batches = list(ops.group_into_moment_compatible(mops))
