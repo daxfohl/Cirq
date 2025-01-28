@@ -15,7 +15,7 @@
 """A recursive type describing trees of operations, and utility methods for it.
 """
 
-from typing import Callable, Iterable, Iterator, NoReturn, Union, TYPE_CHECKING
+from typing import Callable, Iterable, Iterator, List, NoReturn, Sequence, Set, Union, TYPE_CHECKING
 
 from cirq._doc import document
 from cirq._import import LazyLoader
@@ -26,8 +26,8 @@ if TYPE_CHECKING:
 
 moment = LazyLoader("moment", globals(), "cirq.circuits.moment")
 
-
-OP_TREE = Union[Operation, Iterable['OP_TREE']]
+MOMENT_OR_OP = Union['cirq.Operation', 'cirq.Moment']
+OP_TREE = Union['cirq.Operation', Iterable['OP_TREE']]
 document(
     OP_TREE,
     """An operation or nested collections of operations.
@@ -48,7 +48,7 @@ document(
 
 def flatten_op_tree(
     root: OP_TREE, preserve_moments: bool = False
-) -> Iterator[Union[Operation, 'cirq.Moment']]:
+) -> Iterator[MOMENT_OR_OP]:
     """Performs an in-order iteration of the operations (leaves) in an OP_TREE.
 
     Args:
@@ -68,7 +68,7 @@ def flatten_op_tree(
         return flatten_to_ops(root)
 
 
-def flatten_to_ops(root: OP_TREE) -> Iterator[Operation]:
+def flatten_to_ops(root: OP_TREE) -> Iterator['cirq.Operation']:
     """Performs an in-order iteration of the operations (leaves) in an OP_TREE.
 
     Args:
@@ -89,7 +89,7 @@ def flatten_to_ops(root: OP_TREE) -> Iterator[Operation]:
         _bad_op_tree(root)
 
 
-def flatten_to_ops_or_moments(root: OP_TREE) -> Iterator[Union[Operation, 'cirq.Moment']]:
+def flatten_to_ops_or_moments(root: OP_TREE) -> Iterator[MOMENT_OR_OP]:
     """Performs an in-order iteration OP_TREE, yielding ops and moments.
 
     Args:
@@ -112,7 +112,7 @@ def flatten_to_ops_or_moments(root: OP_TREE) -> Iterator[Union[Operation, 'cirq.
 
 def transform_op_tree(
     root: OP_TREE,
-    op_transformation: Callable[[Operation], OP_TREE] = lambda e: e,
+    op_transformation: Callable[['cirq.Operation'], OP_TREE] = lambda e: e,
     iter_transformation: Callable[[Iterable[OP_TREE]], OP_TREE] = lambda e: e,
     preserve_moments: bool = False,
 ) -> OP_TREE:
@@ -163,3 +163,31 @@ def freeze_op_tree(root: OP_TREE) -> OP_TREE:
 
 def _bad_op_tree(root: OP_TREE) -> NoReturn:
     raise TypeError(f'Not an Operation or Iterable: {type(root)} {root}')
+
+
+def group_into_moment_compatible(inputs: Sequence[MOMENT_OR_OP]) -> Iterator[Sequence[MOMENT_OR_OP]]:
+    """Groups sequential ops into those that can coexist in a single moment."""
+    i = 0
+    print('hi')
+    print(inputs)
+    batch: List[MOMENT_OR_OP] = []
+    while i < len(inputs):
+        if isinstance(inputs[i], moment.Moment):
+            yield [inputs[i]]
+            i += 1
+            continue
+        print(i)
+        batch = []
+        batch_qubits: Set['cirq.Qid'] = set()
+        while i < len(inputs):
+            thing = inputs[i]
+            qs = thing.qubits
+            if isinstance(thing, moment.Moment) or not batch_qubits.isdisjoint(qs):
+                yield batch
+                batch = []
+                break
+            batch.append(thing)
+            batch_qubits.update(qs)
+            i += 1
+    if batch:
+        yield batch

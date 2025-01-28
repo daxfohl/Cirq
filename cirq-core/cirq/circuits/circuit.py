@@ -2172,34 +2172,16 @@ class Circuit(AbstractCircuit):
         k = max(min(index if index >= 0 else len(self._moments) + index, len(self._moments)), 0)
         if strategy != InsertStrategy.EARLIEST or k != len(self._moments):
             self._placement_cache = None
-        stuff = list(ops.flatten_to_ops_or_moments(moment_or_operation_tree))
-        i = 0
-        while i < len(stuff):
-            batch: List[Union['cirq.Moment', 'cirq.Operation']] = []
-            batch_qubits: Set['cirq.Qid'] = set()
-            while i < len(stuff):
-                thing = stuff[i]
-                if isinstance(thing, Moment):
-                    if batch:
-                        break
-                    else:
-                        batch.append(thing)
-                        i += 1
-                        break
-                if strategy is InsertStrategy.NEW:
-                    batch.append(thing)
-                    i += 1
-                    break
-                qs = thing.qubits
-                if batch_qubits.isdisjoint(qs):
-                    batch.append(thing)
-                    batch_qubits.update(qs)
-                    i += 1
-                else:
-                    break
+        mops = list(ops.flatten_to_ops_or_moments(moment_or_operation_tree))
+        if strategy is InsertStrategy.NEW:
+            batches = [[mop] for mop in mops]
+        else:
+            batches = list(ops.group_into_moment_compatible(mops))
+        for batch in batches:
             if (
-                strategy in [InsertStrategy.INLINE, InsertStrategy.EARLIEST]
+                not self._placement_cache
                 and not isinstance(batch[0], Moment)
+                and strategy in [InsertStrategy.INLINE, InsertStrategy.EARLIEST]
                 and not all(
                     self._can_add_op_at(k, op) or k > 0 and self._can_add_op_at(k - 1, op)
                     for op in cast(List['cirq.Operation'], batch)

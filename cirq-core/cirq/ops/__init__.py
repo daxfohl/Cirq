@@ -167,6 +167,8 @@ from cirq.ops.op_tree import (
     freeze_op_tree as freeze_op_tree,
     flatten_to_ops as flatten_to_ops,
     flatten_to_ops_or_moments as flatten_to_ops_or_moments,
+    group_into_moment_compatible as group_into_moment_compatible,
+    MOMENT_OR_OP as MOMENT_OR_OP,
     OP_TREE as OP_TREE,
     transform_op_tree as transform_op_tree,
 )
