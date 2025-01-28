@@ -163,9 +163,7 @@ def _bad_op_tree(root: OP_TREE) -> NoReturn:
     raise TypeError(f'Not an Operation or Iterable: {type(root)} {root}')
 
 
-def group_into_moment_compatible(
-    inputs: Sequence[MOMENT_OR_OP],
-) -> Iterator[List[MOMENT_OR_OP]]:
+def group_into_moment_compatible(inputs: Sequence[MOMENT_OR_OP]) -> Iterator[List[MOMENT_OR_OP]]:
     """Groups sequential ops into those that can coexist in a single moment."""
     i = 0
     print('hi')

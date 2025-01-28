@@ -2135,6 +2135,7 @@ class Circuit(AbstractCircuit):
         else:
             batches = list(ops.group_into_moment_compatible(mops))
         for batch in batches:
+            # Insert a moment if inline/earliest are occupied for any op in batch
             if (
                 not self._placement_cache
                 and not isinstance(batch[0], Moment)
@@ -2147,6 +2148,7 @@ class Circuit(AbstractCircuit):
                 self._moments.insert(k, Moment())
             max_p = 0
             for moment_or_op in batch:
+                # Determine Placement
                 if self._placement_cache:
                     p = self._placement_cache.append(moment_or_op)
                 elif isinstance(moment_or_op, Moment):
@@ -2154,17 +2156,20 @@ class Circuit(AbstractCircuit):
                 elif strategy in [InsertStrategy.NEW, InsertStrategy.NEW_THEN_INLINE]:
                     self._moments.insert(k, Moment())
                     p = k
-                else:
+                else:  # [InsertStrategy.INLINE, InsertStrategy.EARLIEST]
+                    # At least one of k or k-1 is free due to batch's moment insertion check above
                     p = k if self._can_add_op_at(k, moment_or_op) else k - 1
                     if strategy is InsertStrategy.EARLIEST:
                         p = self.earliest_available_moment(moment_or_op, end_moment_index=k)
-                max_p = max(p, max_p)
+                # Place
                 if isinstance(moment_or_op, Moment):
                     self._moments.insert(p, moment_or_op)
                 elif p == len(self._moments):
                     self._moments.append(Moment(moment_or_op))
                 else:
                     self._moments[p] = self._moments[p].with_operation(moment_or_op)
+                # Cleanup
+                max_p = max(p, max_p)
                 if strategy is InsertStrategy.NEW_THEN_INLINE:
                     strategy = InsertStrategy.INLINE
             k = max(k, max_p + 1)
