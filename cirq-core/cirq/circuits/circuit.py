@@ -2095,41 +2095,6 @@ class Circuit(AbstractCircuit):
                 last_available = k
         return last_available
 
-    def _pick_or_create_inserted_op_moment_index(
-        self, splitter_index: int, op: 'cirq.Operation', strategy: 'cirq.InsertStrategy'
-    ) -> int:
-        """Determines and prepares where an insertion will occur.
-
-        Args:
-            splitter_index: The index to insert at.
-            op: The operation that will be inserted.
-            strategy: The insertion strategy.
-
-        Returns:
-            The index of the (possibly new) moment where the insertion should
-                occur.
-
-        Raises:
-            ValueError: Unrecognized append strategy.
-        """
-
-        if strategy is InsertStrategy.NEW or strategy is InsertStrategy.NEW_THEN_INLINE:
-            self._moments.insert(splitter_index, Moment())
-            self._mutated()
-            return splitter_index
-
-        if strategy is InsertStrategy.INLINE:
-            if self._can_add_op_at(splitter_index, op):
-                return splitter_index
-            return splitter_index - 1
-
-        if strategy is InsertStrategy.EARLIEST:
-            if self._can_add_op_at(splitter_index, op):
-                return self.earliest_available_moment(op, end_moment_index=splitter_index)
-            return self.earliest_available_moment(op, end_moment_index=splitter_index - 1)
-
-        raise ValueError(f'Unrecognized append strategy: {strategy}')
-
     def _can_add_op_at(self, moment_index: int, operation: 'cirq.Operation') -> bool:
         if not 0 <= moment_index < len(self._moments):
             return True
@@ -2139,7 +2104,7 @@ class Circuit(AbstractCircuit):
     def insert(
         self,
         index: int,
-        moment_or_operation_tree: Union['cirq.Operation', 'cirq.OP_TREE'],
+        moment_or_operation_tree: 'cirq.OP_TREE',
         strategy: 'cirq.InsertStrategy' = InsertStrategy.EARLIEST,
     ) -> int:
         """Inserts operations into the circuit.
@@ -2186,8 +2151,13 @@ class Circuit(AbstractCircuit):
                     p = self._placement_cache.append(moment_or_op)
                 elif isinstance(moment_or_op, Moment):
                     p = k
+                elif strategy in [InsertStrategy.NEW, InsertStrategy.NEW_THEN_INLINE]:
+                    self._moments.insert(k, Moment())
+                    p = k
                 else:
-                    p = self._pick_or_create_inserted_op_moment_index(k, moment_or_op, strategy)
+                    p = k if self._can_add_op_at(k, moment_or_op) else k - 1
+                    if strategy is InsertStrategy.EARLIEST:
+                        p = self.earliest_available_moment(moment_or_op, end_moment_index=k)
                 max_p = max(p, max_p)
                 if isinstance(moment_or_op, Moment):
                     self._moments.insert(p, moment_or_op)
