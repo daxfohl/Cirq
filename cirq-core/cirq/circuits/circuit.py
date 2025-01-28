@@ -2121,20 +2121,12 @@ class Circuit(AbstractCircuit):
         if strategy is InsertStrategy.INLINE:
             if self._can_add_op_at(splitter_index, op):
                 return splitter_index
-            if splitter_index != 0 and self._can_add_op_at(splitter_index - 1, op):
-                return splitter_index - 1
-            return self._pick_or_create_inserted_op_moment_index(
-                splitter_index, op, InsertStrategy.NEW
-            )
+            return splitter_index - 1
 
         if strategy is InsertStrategy.EARLIEST:
             if self._can_add_op_at(splitter_index, op):
                 return self.earliest_available_moment(op, end_moment_index=splitter_index)
-            if splitter_index != 0 and self._can_add_op_at(splitter_index - 1, op):
-                return self.earliest_available_moment(op, end_moment_index=splitter_index - 1)
-            return self._pick_or_create_inserted_op_moment_index(
-                splitter_index, op, InsertStrategy.NEW
-            )
+            return self.earliest_available_moment(op, end_moment_index=splitter_index - 1)
 
         raise ValueError(f'Unrecognized append strategy: {strategy}')
 
