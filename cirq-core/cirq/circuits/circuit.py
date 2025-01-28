@@ -2435,7 +2435,7 @@ class Circuit(AbstractCircuit):
 
     def append(
         self,
-        moment_or_operation_tree: Union['cirq.Moment', 'cirq.OP_TREE'],
+        moment_or_operation_tree: 'cirq.OP_TREE',
         strategy: 'cirq.InsertStrategy' = InsertStrategy.EARLIEST,
     ) -> None:
         """Appends operations onto the end of the circuit.
