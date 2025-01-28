@@ -168,12 +168,12 @@ def group_into_moment_compatible(inputs: Sequence[MOMENT_OR_OP]) -> Iterator[Lis
     i = 0
     batch: List[MOMENT_OR_OP] = []
     while i < len(inputs):
+        batch = []
+        batch_qubits: Set['cirq.Qid'] = set()
         if isinstance(inputs[i], moment.Moment):
             yield [inputs[i]]
             i += 1
             continue
-        batch = []
-        batch_qubits: Set['cirq.Qid'] = set()
         while i < len(inputs):
             mop = inputs[i]
             qs = mop.qubits
