@@ -2143,13 +2143,18 @@ class Circuit(AbstractCircuit):
                 not self._placement_cache
                 and not isinstance(batch[0], Moment)
                 and strategy in [InsertStrategy.INLINE, InsertStrategy.EARLIEST]
-                and not all(
-                    self._can_add_op_at(k, op) or k > 0 and self._can_add_op_at(k - 1, op)
-                    for op in cast(List['cirq.Operation'], batch)
-                )
             ):
-                self._moments.insert(k, Moment())
-                if strategy is InsertStrategy.INLINE:
+                batch_ops = cast(List['cirq.Operation'], batch)
+                if strategy is InsertStrategy.EARLIEST and not all(
+                    self._can_add_op_at(k, op) or k > 0 and self._can_add_op_at(k - 1, op)
+                    for op in batch_ops
+                ):
+                    self._moments.insert(k, Moment())
+                elif strategy is InsertStrategy.INLINE and (
+                    k == 0 or not all(self._can_add_op_at(k - 1, op) for op in batch_ops)
+                ):
+                    if not all(self._can_add_op_at(k, op) for op in batch_ops):
+                        self._moments.insert(k, Moment())
                     k += 1
             max_p = 0
             for moment_or_op in batch:
@@ -2162,7 +2167,7 @@ class Circuit(AbstractCircuit):
                     self._moments.insert(k, Moment())
                     p = k
                 elif strategy is InsertStrategy.INLINE:
-                    p = k - 1 if k > 0 and self._can_add_op_at(k - 1, moment_or_op) else k
+                    p = k - 1
                 else:  # InsertStrategy.EARLIEST:
                     p = self.earliest_available_moment(moment_or_op, end_moment_index=k)
                 # Place

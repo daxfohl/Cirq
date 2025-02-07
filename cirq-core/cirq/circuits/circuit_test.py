@@ -717,8 +717,8 @@ def test_append_strategies():
         [
             cirq.Moment([cirq.X(a)]),
             cirq.Moment([cirq.CZ(a, b)]),
-            cirq.Moment([cirq.X(b), cirq.X(a)]),
             cirq.Moment([cirq.X(b)]),
+            cirq.Moment([cirq.X(b), cirq.X(a)]),
         ]
     )
 
@@ -800,8 +800,8 @@ def test_insert_op_tree_inline():
     op_tree_list = [
         (1, 1, [cirq.H(a), cirq.X(b)], [a, b]),
         (0, 0, [cirq.X(b)], [b]),
-        (4, 3, [cirq.H(b)], [b]),
-        (5, 3, [cirq.H(a)], [a]),
+        (4, 2, [cirq.H(b)], [b]),
+        (5, 2, [cirq.H(a)], [a]),
         (-2, 0, [cirq.X(b)], [b]),
         (-5, 0, [cirq.CZ(a, b)], [a]),
     ]
@@ -3609,7 +3609,7 @@ def test_insert_inline_end_of_circuit():
     c2.insert(5, cirq.Y.on_each(q0, q1), strategy=cirq.InsertStrategy.INLINE)
     c3 = cirq.Circuit(cirq.X(q0))
     c3.insert(5, cirq.Y.on_each(q1, q0), strategy=cirq.InsertStrategy.INLINE)
-    expected = cirq.Circuit(cirq.Moment(cirq.X(q0), cirq.Y(q1)), cirq.Moment(cirq.Y(q0)))
+    expected = cirq.Circuit(cirq.Moment(cirq.X(q0)), cirq.Moment(cirq.Y(q0), cirq.Y(q1)))
     assert c0 == expected
     assert c1 == expected
     assert c2 == expected
