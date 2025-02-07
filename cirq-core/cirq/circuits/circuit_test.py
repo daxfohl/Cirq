@@ -717,8 +717,8 @@ def test_append_strategies():
         [
             cirq.Moment([cirq.X(a)]),
             cirq.Moment([cirq.CZ(a, b)]),
-            cirq.Moment([cirq.X(b)]),
             cirq.Moment([cirq.X(b), cirq.X(a)]),
+            cirq.Moment([cirq.X(b)]),
         ]
     )
 
@@ -868,17 +868,10 @@ def test_insert_inline_near_start():
     assert c == cirq.Circuit([cirq.Moment([cirq.X(a)]), cirq.Moment()])
 
     c.insert(1, cirq.Y(a), strategy=cirq.InsertStrategy.INLINE)
-    assert c == cirq.Circuit([cirq.Moment([cirq.X(a)]), cirq.Moment([cirq.Y(a)]), cirq.Moment()])
+    assert c == cirq.Circuit([cirq.Moment([cirq.X(a)]), cirq.Moment([cirq.Y(a)])])
 
     c.insert(0, cirq.Z(b), strategy=cirq.InsertStrategy.INLINE)
-    assert c == cirq.Circuit(
-        [
-            cirq.Moment([cirq.Z(b)]),
-            cirq.Moment([cirq.X(a)]),
-            cirq.Moment([cirq.Y(a)]),
-            cirq.Moment(),
-        ]
-    )
+    assert c == cirq.Circuit([cirq.Moment([cirq.Z(b), cirq.X(a)]), cirq.Moment([cirq.Y(a)])])
 
 
 def test_insert_at_frontier_init():
@@ -3582,7 +3575,7 @@ def test_insert_to_open_moment():
     c1.insert(1, cirq.Y(q), strategy=cirq.InsertStrategy.INLINE)
     expected = cirq.Circuit(cirq.X(q), cirq.Y(q), cirq.Z(q))
     assert c0 == expected
-    assert c1 == cirq.Circuit(cirq.X(q), cirq.Y(q), cirq.Moment(), cirq.Moment(cirq.Z(q)))
+    assert c1 == expected
 
 
 def test_insert_inline_when_requested_and_previous_moment_free():
@@ -3616,7 +3609,7 @@ def test_insert_inline_end_of_circuit():
     c2.insert(5, cirq.Y.on_each(q0, q1), strategy=cirq.InsertStrategy.INLINE)
     c3 = cirq.Circuit(cirq.X(q0))
     c3.insert(5, cirq.Y.on_each(q1, q0), strategy=cirq.InsertStrategy.INLINE)
-    expected = cirq.Circuit(cirq.Moment(cirq.X(q0)), cirq.Moment(cirq.Y(q0), cirq.Y(q1)))
+    expected = cirq.Circuit(cirq.Moment(cirq.X(q0), cirq.Y(q1)), cirq.Moment(cirq.Y(q0)))
     assert c0 == expected
     assert c1 == expected
     assert c2 == expected
