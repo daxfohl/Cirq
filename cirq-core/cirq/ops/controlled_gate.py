@@ -33,6 +33,7 @@ from cirq.ops import (
     control_values as cv,
     controlled_operation as cop,
     global_phase_op as gp,
+    identity,
     matrix_gates,
     op_tree,
     raw_types,
@@ -209,18 +210,12 @@ class ControlledGate(raw_types.Gate):
                     # But wait, why don't we just do the controlled global phase in all cases then?
                     # Again, glad you asked. The only reason is that it's not in our default
                     # gateset, whereas Z is. So we prefer Z when possible.
-                    if self.num_controls() == 1:
-                        # A Z gate on the control qubit gives us our controlled phase.
-                        z_as_phase = common_gates.ZPowGate(
-                            dimension=self.control_qid_shape[0], exponent=total_shift
-                        )
-                        controlled_phase = z_as_phase
-                    elif isinstance(self.control_values, cv.ProductOfSums):
+                    if self.control_qid_shape[-1] == 2 and isinstance(
+                        self.control_values, cv.ProductOfSums
+                    ):
                         # A Z gate on the last control qubit, controlled by the others, is the same
                         # as a phase controlled by all of them.
-                        z_as_phase = common_gates.ZPowGate(
-                            dimension=self.control_qid_shape[-1], exponent=total_shift
-                        )
+                        z_as_phase = _z_as_controlled_phase(self.control_values[-1], total_shift)
                         controlled_phase = z_as_phase.controlled(
                             num_controls=self.num_controls() - 1,
                             control_values=self.control_values[:-1],
@@ -396,3 +391,21 @@ def _validate_sub_object(sub_object: Union['cirq.Gate', 'cirq.Operation']):
         raise ValueError(f'Cannot control measurement {sub_object}')
     if not protocols.has_mixture(sub_object) and not protocols.is_parameterized(sub_object):
         raise ValueError(f'Cannot control channel with non-unitary operators: {sub_object}')
+
+
+def _z_as_controlled_phase(
+    control_values: Collection[int], phase_shift: float
+) -> common_gates.ZPowGate:
+    """Returns Z gate with same unitary as a controlled phase gate."""
+    if not control_values:
+        return common_gates.Z**2  # Identity. No valid control values means never do anything.
+    control_values = set(control_values)
+    if control_values == {1}:
+        return common_gates.Z**phase_shift  # Normal case.
+    if control_values == {0}:
+        # IDK why this works, but its unitary matches global phase controlled by [0].
+        return common_gates.ZPowGate(global_shift=-1) ** (-phase_shift)
+    if set(control_values) == {0, 1}:
+        # Subgate is always run. Need a one-qubit gate that does a global
+        # shift. Identity doesn't have global shift, so use Z**2.
+        return common_gates.ZPowGate(global_shift=phase_shift / 2) ** 2
