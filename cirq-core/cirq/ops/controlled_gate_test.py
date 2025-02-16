@@ -427,6 +427,13 @@ def test_controlled_gate_is_consistent(gate: cirq.Gate, should_decompose_to_targ
     )
 
 
+def test_controlled_cz_with_phase():
+    qs = cirq.LineQubit.range(3)
+    op = cirq.CZPowGate(exponent=1.2, global_shift=1.3).on(*qs[1:]).controlled_by(qs[0])
+    c = cirq.Circuit(op._decompose_())
+    assert np.allclose(cirq.unitary(c), cirq.unitary(op))
+
+
 def test_pow_inverse():
     assert cirq.inverse(CRestricted, None) is None
     assert cirq.pow(CRestricted, 1.5, None) is None
