@@ -210,11 +210,14 @@ class ControlledGate(raw_types.Gate):
                     # Again, glad you asked. The only reason is that it's not in our default
                     # gateset, whereas Z is. So we prefer Z when possible.
                     if self.num_controls() == 1:
+                        # A Z gate on the control qubit gives us our controlled phase.
                         z_as_phase = common_gates.ZPowGate(
                             dimension=self.control_qid_shape[0], exponent=total_shift
                         )
                         controlled_phase = z_as_phase
                     elif isinstance(self.control_values, cv.ProductOfSums):
+                        # A Z gate on the last control qubit, controlled by the others, is the same
+                        # as a phase controlled by all of them.
                         z_as_phase = common_gates.ZPowGate(
                             dimension=self.control_qid_shape[-1], exponent=total_shift
                         )
@@ -224,12 +227,17 @@ class ControlledGate(raw_types.Gate):
                             control_qid_shape=self.control_qid_shape[:-1],
                         )
                     else:
+                        # If control values aren't a product of options per qubit, i.e. if
+                        # different qubits have different hot values depending on others, then
+                        # there's no qubit we can define Z on. So we just do the global phase,
+                        # controlled by the same control values as self.
                         phase = gp.GlobalPhaseGate(1j ** (2 * total_shift))
                         controlled_phase = phase.controlled(
                             num_controls=self.num_controls(),
                             control_values=self.control_values,
                             control_qid_shape=self.control_qid_shape,
                         )
+                    # No need to decompose. We've already done our best.
                     phase_op = controlled_phase.on(*control_qubits)
                     result += [phase_op]
                 return result
