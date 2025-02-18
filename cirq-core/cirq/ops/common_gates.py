@@ -1203,6 +1203,7 @@ class CZPowGate(gate_features.InterchangeableQubitsGate, eigen_gate.EigenGate):
                 )
             )
         result = super().controlled(num_controls, control_values, control_qid_shape)
+
         if (
             self._global_shift == 0
             and isinstance(result, controlled_gate.ControlledGate)
@@ -1214,6 +1215,18 @@ class CZPowGate(gate_features.InterchangeableQubitsGate, eigen_gate.EigenGate):
                 exponent=self._exponent, global_shift=self._global_shift
             ).controlled(
                 result.num_controls() - 1, result.control_values[:-1], result.control_qid_shape[:-1]
+            )
+
+        if (
+            self._global_shift == 0
+            and isinstance(result, controlled_gate.ControlledGate)
+            and result.sub_gate is self
+        ):
+            return controlled_gate.ControlledGate(
+                ZPowGate(exponent=self.exponent),
+                num_controls=result.num_controls() + 1,
+                control_values=result.control_values & cv.ProductOfSums(((1,),)),
+                control_qid_shape=result.control_qid_shape + (2,),
             )
         return result
 

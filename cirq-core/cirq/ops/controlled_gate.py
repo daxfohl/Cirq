@@ -162,18 +162,15 @@ class ControlledGate(raw_types.Gate):
             control_values=self.control_values,
             control_qid_shape=self.control_qid_shape,
         )
-        if not isinstance(canon, ControlledGate) or (
-            canon.num_controls() != self.num_controls()
-            and not isinstance(canon.sub_gate, common_gates.CZPowGate)
-        ):
+        if not isinstance(canon, ControlledGate) or canon.num_controls() != self.num_controls():
             return canon.on(*qubits)
-        control_qubits = list(qubits[: self.num_controls()])
         if (
             protocols.has_unitary(self.sub_gate)
             and protocols.num_qubits(self.sub_gate) == 1
             and self._qid_shape_() == (2,) * len(self._qid_shape_())
             and isinstance(self.control_values, cv.ProductOfSums)
         ):
+            control_qubits = list(qubits[: self.num_controls()])
             invert_ops: List['cirq.Operation'] = []
             for cvals, cqbit in zip(self.control_values, qubits[: self.num_controls()]):
                 if set(cvals) == {0}:
@@ -184,13 +181,6 @@ class ControlledGate(raw_types.Gate):
                 protocols.unitary(self.sub_gate), control_qubits, qubits[-1]
             )
             return invert_ops + decomposed_ops + invert_ops
-        if isinstance(self.sub_gate, common_gates.CZPowGate) and self.sub_gate.global_shift == 0:
-            return ControlledGate(
-                common_gates.ZPowGate(exponent=self.sub_gate.exponent),
-                num_controls=self.num_controls() + 1,
-                control_values=self.control_values & cv.ProductOfSums(((1,),)),
-                control_qid_shape=self.control_qid_shape + (2,),
-            ).on(*qubits)
 
         if isinstance(self.sub_gate, matrix_gates.MatrixGate):
             # Default decompositions of 2/3 qubit `cirq.MatrixGate` ignores global phase, which is
