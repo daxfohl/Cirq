@@ -159,6 +159,16 @@ class ControlledGate(raw_types.Gate):
     def _decompose_with_context_(
         self, qubits: Tuple['cirq.Qid', ...], context: Optional['cirq.DecompositionContext'] = None
     ) -> Union[None, NotImplementedType, 'cirq.OP_TREE']:
+        canon = self.sub_gate.controlled(
+            num_controls=self.num_controls(),
+            control_values=self.control_values,
+            control_qid_shape=self.control_qid_shape,
+        )
+        if not isinstance(canon, ControlledGate) or (
+            canon.num_controls() != self.num_controls()
+            and not isinstance(canon.sub_gate, common_gates.CZPowGate)
+        ):
+            return canon.on(*qubits)
         control_qubits = list(qubits[: self.num_controls()])
         if (
             protocols.has_unitary(self.sub_gate)
@@ -189,38 +199,13 @@ class ControlledGate(raw_types.Gate):
             for hot in self.control_values.expand():
                 radians[hot] = angle
             return dg.DiagonalGate(list(radians.flatten())).on(*qubits)
-        if isinstance(self.sub_gate, common_gates.CZPowGate):
-            z_sub_gate = common_gates.ZPowGate(exponent=self.sub_gate.exponent)
-            num_controls = self.num_controls() + 1
-            control_values = self.control_values & cv.ProductOfSums(((1,),))
-            control_qid_shape = self.control_qid_shape + (2,)
-            controlled_z = (
-                z_sub_gate.controlled(
-                    num_controls=num_controls,
-                    control_values=control_values,
-                    control_qid_shape=control_qid_shape,
-                )
-                if protocols.is_parameterized(self)
-                else ControlledGate(
-                    z_sub_gate,
-                    num_controls=num_controls,
-                    control_values=control_values,
-                    control_qid_shape=control_qid_shape,
-                )
-            )
-            if self != controlled_z:
-                result = controlled_z.on(*qubits)
-                if self.sub_gate.global_shift == 0:
-                    return result
-                # Reconstruct the controlled global shift of the subgate.
-                total_shift = self.sub_gate.exponent * self.sub_gate.global_shift
-                phase_gate = gp.GlobalPhaseGate(1j ** (2 * total_shift))
-                controlled_phase_op = phase_gate.controlled(
-                    num_controls=self.num_controls(),
-                    control_values=self.control_values,
-                    control_qid_shape=self.control_qid_shape,
-                ).on(*control_qubits)
-                return [result, controlled_phase_op]
+        if isinstance(self.sub_gate, common_gates.CZPowGate) and self.sub_gate.global_shift == 0:
+            return ControlledGate(
+                common_gates.ZPowGate(exponent=self.sub_gate.exponent),
+                num_controls=self.num_controls() + 1,
+                control_values=self.control_values & cv.ProductOfSums(((1,),)),
+                control_qid_shape=self.control_qid_shape + (2,),
+            ).on(*qubits)
 
         if isinstance(self.sub_gate, matrix_gates.MatrixGate):
             # Default decompositions of 2/3 qubit `cirq.MatrixGate` ignores global phase, which is

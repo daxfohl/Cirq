@@ -46,7 +46,14 @@ import cirq
 from cirq import protocols, value
 from cirq._compat import proper_repr
 from cirq._doc import document
-from cirq.ops import controlled_gate, eigen_gate, gate_features, raw_types, control_values as cv
+from cirq.ops import (
+    controlled_gate,
+    eigen_gate,
+    gate_features,
+    global_phase_op,
+    raw_types,
+    control_values as cv,
+)
 from cirq.ops.swap_gates import ISWAP, SWAP, ISwapPowGate, SwapPowGate
 from cirq.ops.measurement_gate import MeasurementGate
 
@@ -1072,6 +1079,21 @@ class CZPowGate(gate_features.InterchangeableQubitsGate, eigen_gate.EigenGate):
 
     def _num_qubits_(self) -> int:
         return 2
+
+    def _decompose_(self, qubits):
+        if self.global_shift == 0:
+            return NotImplemented
+        global_phase = 1j ** (2 * self.global_shift * self._exponent)
+        global_phase = (
+            complex(global_phase)
+            if protocols.is_parameterized(global_phase) and global_phase.is_complex
+            else global_phase
+        )
+        vals = []
+        if protocols.is_parameterized(global_phase) or abs(global_phase - 1.0) > 0:
+            vals.append(global_phase_op.global_phase_operation(global_phase))
+        vals.append(CZPowGate(exponent=self.exponent).on(*qubits))
+        return vals
 
     def _decompose_into_clifford_with_qubits_(self, qubits):
         from cirq.ops.pauli_interaction_gate import PauliInteractionGate
