@@ -32,8 +32,6 @@ from cirq import protocols, value, _import
 from cirq.ops import (
     control_values as cv,
     controlled_operation as cop,
-    diagonal_gate as dg,
-    global_phase_op as gp,
     matrix_gates,
     op_tree,
     raw_types,
@@ -186,19 +184,6 @@ class ControlledGate(raw_types.Gate):
                 protocols.unitary(self.sub_gate), control_qubits, qubits[-1]
             )
             return invert_ops + decomposed_ops + invert_ops
-        if isinstance(self.sub_gate, gp.GlobalPhaseGate):
-            # A controlled global phase is a diagonal gate (Z in the simplest case), where each
-            # active control set equal to the phase angle.
-            shape = self.control_qid_shape
-            if protocols.is_parameterized(self.sub_gate) or set(shape) != {2}:
-                return NotImplemented
-            angle = np.angle(complex(self.sub_gate.coefficient))
-            if shape == (2,):
-                return common_gates.Z(*qubits) ** (angle / np.pi)
-            radians = np.zeros(shape=shape)
-            for hot in self.control_values.expand():
-                radians[hot] = angle
-            return dg.DiagonalGate(list(radians.flatten())).on(*qubits)
         if isinstance(self.sub_gate, common_gates.CZPowGate) and self.sub_gate.global_shift == 0:
             return ControlledGate(
                 common_gates.ZPowGate(exponent=self.sub_gate.exponent),
