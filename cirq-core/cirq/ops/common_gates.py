@@ -50,6 +50,7 @@ from cirq.ops import (
     controlled_gate,
     eigen_gate,
     gate_features,
+    global_phase_op as gp,
     raw_types,
     control_values as cv,
 )
@@ -1082,8 +1083,8 @@ class CZPowGate(gate_features.InterchangeableQubitsGate, eigen_gate.EigenGate):
     def _decompose_(self, qubits):
         if self.global_shift == 0:
             return NotImplemented
-        global_phase_gate = eigen_gate.global_phase_gate(self)
-        return ([global_phase_gate()] if global_phase_gate else []) + [
+        phase_gate = gp.from_phase_and_exponent(self.global_shift, self.exponent)
+        return ([] if phase_gate.is_identity else [phase_gate()]) + [
             CZPowGate(exponent=self.exponent).on(*qubits)
         ]
 

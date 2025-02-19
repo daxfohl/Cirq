@@ -37,6 +37,10 @@ class GlobalPhaseGate(raw_types.Gate):
     def coefficient(self) -> 'cirq.TParamValComplex':
         return self._coefficient
 
+    @property
+    def is_identity(self) -> bool:
+        return self._coefficient == 1
+
     def _value_equality_values_(self) -> Any:
         return self.coefficient
 
@@ -131,3 +135,16 @@ def global_phase_operation(
 ) -> 'cirq.GateOperation':
     """Creates an operation that represents a global phase on the state."""
     return GlobalPhaseGate(coefficient, atol)()
+
+
+def from_phase_and_exponent(
+    half_turns: 'cirq.TParamVal', exponent: 'cirq.TParamVal'
+) -> 'cirq.GlobalPhaseGate':
+    """Creates a GlobalPhaseGate from the global phase and exponent."""
+    global_phase = 1j ** (2 * half_turns * exponent)
+    global_phase = (
+        complex(global_phase)
+        if isinstance(global_phase, sympy.Expr) and global_phase.is_complex
+        else global_phase
+    )
+    return GlobalPhaseGate(global_phase)

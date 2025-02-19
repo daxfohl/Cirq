@@ -118,10 +118,11 @@ class CCZPowGate(gate_features.InterchangeableQubitsGate, eigen_gate.EigenGate):
             elif not b.is_adjacent(c):
                 a, b = b, a
 
-        p = common_gates.T**self._exponent
+        exp = self._exponent
+        p = common_gates.T**exp
         sweep_abc = [common_gates.CNOT(a, b), common_gates.CNOT(b, c)]
-        global_phase_gate = eigen_gate.global_phase_gate(self)
-        return ([global_phase_gate()] if global_phase_gate else []) + [
+        phase_gate = global_phase_op.from_phase_and_exponent(self.global_shift, exp)
+        return ([] if phase_gate.is_identity else [phase_gate()]) + [
             p(a),
             p(b),
             p(c),
