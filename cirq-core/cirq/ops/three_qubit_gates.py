@@ -120,18 +120,8 @@ class CCZPowGate(gate_features.InterchangeableQubitsGate, eigen_gate.EigenGate):
 
         p = common_gates.T**self._exponent
         sweep_abc = [common_gates.CNOT(a, b), common_gates.CNOT(b, c)]
-        global_phase = 1j ** (2 * self.global_shift * self._exponent)
-        global_phase = (
-            complex(global_phase)
-            if protocols.is_parameterized(global_phase) and global_phase.is_complex
-            else global_phase
-        )
-        global_phase_operation = (
-            [global_phase_op.global_phase_operation(global_phase)]
-            if protocols.is_parameterized(global_phase) or abs(global_phase - 1.0) > 0
-            else []
-        )
-        return global_phase_operation + [
+        global_phase_gate = eigen_gate.global_phase_gate(self)
+        return ([global_phase_gate()] if global_phase_gate else []) + [
             p(a),
             p(b),
             p(c),

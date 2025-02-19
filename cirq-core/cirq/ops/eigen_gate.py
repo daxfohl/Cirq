@@ -35,7 +35,7 @@ import sympy
 
 from cirq import value, protocols
 from cirq.linalg import tolerance
-from cirq.ops import raw_types
+from cirq.ops import global_phase_op, raw_types
 
 if TYPE_CHECKING:
     import cirq
@@ -464,3 +464,18 @@ def _common_rational_period(rational_periods: List[fractions.Fraction]) -> fract
     int_periods = [p.numerator * common_denom // p.denominator for p in rational_periods]
     int_common_period = _lcm(int_periods)
     return fractions.Fraction(int_common_period, common_denom)
+
+
+def global_phase_gate(gate: 'cirq.EigenGate') -> Optional['cirq.GlobalPhaseGate']:
+    """Creates a GlobalPhaseGate for the phase of an EigenGate, or None."""
+    global_phase = 1j ** (2 * gate.global_shift * gate.exponent)
+    global_phase = (
+        complex(global_phase)
+        if protocols.is_parameterized(global_phase) and global_phase.is_complex
+        else global_phase
+    )
+    return (
+        global_phase_op.GlobalPhaseGate(global_phase)
+        if protocols.is_parameterized(global_phase) or abs(global_phase - 1.0) > 0
+        else None
+    )

@@ -157,13 +157,13 @@ class ControlledGate(raw_types.Gate):
     def _decompose_with_context_(
         self, qubits: Tuple['cirq.Qid', ...], context: Optional['cirq.DecompositionContext'] = None
     ) -> Union[None, NotImplementedType, 'cirq.OP_TREE']:
-        canon = self.sub_gate.controlled(
+        canonicalized = self.sub_gate.controlled(
             num_controls=self.num_controls(),
             control_values=self.control_values,
             control_qid_shape=self.control_qid_shape,
         )
-        if not isinstance(canon, ControlledGate) or canon.num_controls() != self.num_controls():
-            return canon.on(*qubits)
+        if canonicalized != self:
+            return canonicalized.on(*qubits)
         if (
             protocols.has_unitary(self.sub_gate)
             and protocols.num_qubits(self.sub_gate) == 1

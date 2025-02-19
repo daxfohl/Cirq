@@ -50,7 +50,6 @@ from cirq.ops import (
     controlled_gate,
     eigen_gate,
     gate_features,
-    global_phase_op,
     raw_types,
     control_values as cv,
 )
@@ -1083,17 +1082,10 @@ class CZPowGate(gate_features.InterchangeableQubitsGate, eigen_gate.EigenGate):
     def _decompose_(self, qubits):
         if self.global_shift == 0:
             return NotImplemented
-        global_phase = 1j ** (2 * self.global_shift * self._exponent)
-        global_phase = (
-            complex(global_phase)
-            if protocols.is_parameterized(global_phase) and global_phase.is_complex
-            else global_phase
-        )
-        vals = []
-        if protocols.is_parameterized(global_phase) or abs(global_phase - 1.0) > 0:
-            vals.append(global_phase_op.global_phase_operation(global_phase))
-        vals.append(CZPowGate(exponent=self.exponent).on(*qubits))
-        return vals
+        global_phase_gate = eigen_gate.global_phase_gate(self)
+        return ([global_phase_gate()] if global_phase_gate else []) + [
+            CZPowGate(exponent=self.exponent).on(*qubits)
+        ]
 
     def _decompose_into_clifford_with_qubits_(self, qubits):
         from cirq.ops.pauli_interaction_gate import PauliInteractionGate
@@ -1203,11 +1195,10 @@ class CZPowGate(gate_features.InterchangeableQubitsGate, eigen_gate.EigenGate):
                 )
             )
         result = super().controlled(num_controls, control_values, control_qid_shape)
-
+        if self._global_shift != 0 or not isinstance(result, controlled_gate.ControlledGate):
+            return result
         if (
-            self._global_shift == 0
-            and isinstance(result, controlled_gate.ControlledGate)
-            and isinstance(result.control_values, cv.ProductOfSums)
+            isinstance(result.control_values, cv.ProductOfSums)
             and result.control_values[-1] == (1,)
             and result.control_qid_shape[-1] == 2
         ):
@@ -1216,19 +1207,12 @@ class CZPowGate(gate_features.InterchangeableQubitsGate, eigen_gate.EigenGate):
             ).controlled(
                 result.num_controls() - 1, result.control_values[:-1], result.control_qid_shape[:-1]
             )
-
-        if (
-            self._global_shift == 0
-            and isinstance(result, controlled_gate.ControlledGate)
-            and result.sub_gate is self
-        ):
-            return controlled_gate.ControlledGate(
-                ZPowGate(exponent=self.exponent),
-                num_controls=result.num_controls() + 1,
-                control_values=result.control_values & cv.ProductOfSums(((1,),)),
-                control_qid_shape=result.control_qid_shape + (2,),
-            )
-        return result
+        return controlled_gate.ControlledGate(
+            ZPowGate(exponent=self.exponent),
+            num_controls=result.num_controls() + 1,
+            control_values=result.control_values & cv.ProductOfSums([1]),
+            control_qid_shape=result.control_qid_shape + (2,),
+        )
 
     def _circuit_diagram_info_(
         self, args: 'cirq.CircuitDiagramInfoArgs'
