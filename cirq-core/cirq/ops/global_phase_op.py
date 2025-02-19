@@ -39,7 +39,9 @@ class GlobalPhaseGate(raw_types.Gate):
 
     @property
     def is_identity(self) -> bool:
-        return self._coefficient == 1
+        return (
+            not protocols.is_parameterized(self._coefficient) and abs(self._coefficient - 1.0) == 0
+        )
 
     def _value_equality_values_(self) -> Any:
         return self.coefficient
