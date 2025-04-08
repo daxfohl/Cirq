@@ -166,6 +166,20 @@ class ControlledGate(raw_types.Gate):
         if canonicalized != self:
             return canonicalized.on(*qubits)
         control_qubits = list(qubits[: self.num_controls()])
+        result = protocols.decompose_once_with_qubits(
+            self.sub_gate,
+            qubits[self.num_controls() :],
+            NotImplemented,
+            flatten=False,
+            context=context,
+        )
+        if result != NotImplemented:
+            return op_tree.transform_op_tree(
+                result,
+                lambda op: op.controlled_by(
+                    *qubits[: self.num_controls()], control_values=self.control_values
+                ),
+        )
         if (
             protocols.has_unitary(self.sub_gate)
             and protocols.num_qubits(self.sub_gate) == 1
@@ -182,22 +196,19 @@ class ControlledGate(raw_types.Gate):
                 protocols.unitary(self.sub_gate), control_qubits, qubits[-1]
             )
             return invert_ops + decomposed_ops + invert_ops
-        result = protocols.decompose_once_with_qubits(
-            self.sub_gate,
-            qubits[self.num_controls() :],
-            NotImplemented,
-            flatten=False,
-            context=context,
-        )
-        if result is NotImplemented:
-            return NotImplemented
-
-        return op_tree.transform_op_tree(
-            result,
-            lambda op: op.controlled_by(
-                *qubits[: self.num_controls()], control_values=self.control_values
-            ),
-        )
+        if protocols.num_qubits(self.sub_gate) == 0:
+            # A controlled global phase is a diagonal gate, where each active control value index
+            # is set equal to the phase angle.
+            shape = self.control_qid_shape
+            if protocols.is_parameterized(self.sub_gate) or set(shape) != {2}:
+                # Could work in theory, but DiagonalGate decompose does not support them.
+                return NotImplemented
+            angle = np.angle(complex(protocols.unitary(self.sub_gate)[0][0]))
+            rads = np.zeros(shape=shape)
+            for hot in self.control_values.expand():
+                rads[hot] = angle
+            return dg.DiagonalGate(diag_angles_radians=[*rads.flatten()]).on(*qubits)
+        return NotImplemented
 
     def on(self, *qubits: 'cirq.Qid') -> cop.ControlledOperation:
         if len(qubits) == 0:

@@ -1061,14 +1061,6 @@ class CZPowGate(gate_features.InterchangeableQubitsGate, eigen_gate.EigenGate):
     def _num_qubits_(self) -> int:
         return 2
 
-    def _decompose_(self, qubits):
-        if self.global_shift == 0:
-            return NotImplemented
-        phase_gate = gp.from_phase_and_exponent(self.global_shift, self.exponent)
-        return ([] if phase_gate.is_identity else [phase_gate()]) + [
-            CZPowGate(exponent=self.exponent).on(*qubits)
-        ]
-
     def _decompose_into_clifford_with_qubits_(self, qubits):
         from cirq.ops.pauli_interaction_gate import PauliInteractionGate
 

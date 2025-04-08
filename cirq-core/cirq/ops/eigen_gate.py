@@ -375,6 +375,17 @@ class EigenGate(raw_types.Gate):
     def _measurement_key_objs_(self):
         return frozenset()
 
+    def _decompose_(self, qubits):
+        import cirq.ops.global_phase_op as gp
+        if self.global_shift == 0:
+            return NotImplemented
+        phase_gate = gp.from_phase_and_exponent(self.global_shift, self.exponent)
+        self_without_phase = self._with_exponent(self.exponent)
+        self_without_phase._global_shift = 0
+        return ([] if phase_gate.is_identity else [phase_gate()]) + [
+            self_without_phase.on(*qubits)
+        ]
+
 
 def _lcm(vals: Iterable[int]) -> int:
     t = 1
