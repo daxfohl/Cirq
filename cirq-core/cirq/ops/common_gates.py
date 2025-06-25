@@ -458,21 +458,25 @@ class YPowGate(eigen_gate.EigenGate):
     # 4 0 3
     # 1 0 0
     def _eigen_components(self) -> list[tuple[float, np.ndarray]]:
-        def prang(x):
-            print(np.round(np.angle(x) / 2 / np.pi * 360 % 360, 3))
         d = self._dimension
+        def prang(x):
+            print('eigen')
+            y = np.round(x, 5)
+            print(np.rint(np.angle(y) / np.pi * d % (2*d)))
         if d not in YPowGate._eigencomponents:
             components = []
             root = 1j ** (2 / d)
-            prang(root)
+            #prang(root)
+            # vz = np.array([root ** -(j ** 2) for j in range(d)])
+            # mz = np.array([vz * root ** (j ** 2) for j in range(d)])
+            vz = np.array([root ** (j*(d-j)) for j in range(d)])
+            mz = np.array([vz * root ** (j*(j-d)) for j in range(d)])
+            prang(mz)
             for i in range(d):
                 #print(i)
                 vx = np.array([root ** (-2 * i * j) for j in range(d)])
                 mx = np.array([np.roll(vx, j) for j in range(d)])
-                vz = np.array([root ** ((d-j)*(d-j)) for j in range(d)])
-                mz = np.array([vz * root ** -((d-j)*(d-j)) for j in range(d)])
                 # prang(mx)
-                prang(mz)
                 m = np.multiply(mx, mz)
                 half_turns = i * 2 / d
                 components.append((half_turns, m / self._dimension))

@@ -1366,8 +1366,15 @@ def rnd(u):
 def prnd(arr):
     print(rnd(arr))
 
+
+# 100 +81  64 +49 36 +25 16 +9 4 +1
+#       0  10 +13  0  +7 16  0 4 +1
+
+# 20! 9 9+7 9+7+5 +3 +1
+#     9  16    21 24  25
+#    25  16     9  4   1
 def test_thing():
-    for d in range(2,20):
+    for d in range(2,11):
         print()
 
         steps = 1
@@ -1381,12 +1388,12 @@ def test_thing():
             print(np.rint(np.angle(y) / np.pi * d % (2*d)))
         answer = np.zeros(shape=(d, d))
 
-        p = 1j ** (2 / d)
+        p = -1j ** (2 / d)
         print(f'{np.rint(np.angle(p) / np.pi * d % (2*d))}/{d*2}')
         for i in range(0, steps*d+1):
             exp = i/steps
-            # print()
-            # print(exp)
+            print()
+            print(exp)
 
             def preig(g):
                 for k, v in g._eigen_components():
@@ -1414,15 +1421,16 @@ def test_thing():
                 cirq.XPowGate(dimension=d)(q) ** -1,
                 cirq.ZPowGate(dimension=d)(q) ** -1,
             ] * int(exp))
+            y = cirq.YPowGate(dimension=d, exponent=exp)
             u1 = cirq.unitary(c1)
             u2 = cirq.unitary(c2)
-            answer = np.add(answer, ang(u1))
-            # prang(u1)
+            uy = cirq.unitary(y)
+            prang(uy)
+            #prang(u1)
             # prang(u2)
-            #
-            y = cirq.YPowGate(dimension=d, exponent=exp)
-            np.testing.assert_allclose(u1, cirq.unitary(y), atol=1e-10)
-            prang(cirq.unitary(y))
+            answer = np.add(answer, ang(u1))
+            np.testing.assert_allclose(u1, uy, atol=1e-10)
+
         print()
         print('answer')
         print(answer)
