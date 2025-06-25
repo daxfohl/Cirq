@@ -399,6 +399,15 @@ class YPowGate(eigen_gate.EigenGate):
     terms of X and Z.
     """
 
+
+    _eigencomponents: dict[int, list[tuple[float, np.ndarray]]] = {}
+
+    def __init__(
+        self, *, exponent: value.TParamVal = 1.0, global_shift: float = 0.0, dimension: int = 2
+    ):
+        super().__init__(exponent=exponent, global_shift=global_shift)
+        self._dimension = dimension
+
     def _num_qubits_(self) -> int:
         return 1
 
@@ -435,11 +444,40 @@ class YPowGate(eigen_gate.EigenGate):
             return SingleQubitCliffordGate.Y_nsqrt.on(*qubits)
         return NotImplemented  # pragma: no cover
 
+    #    0  -45  180  -45
+    #   45    0 -135    0
+    #  180  135    0  135
+    #   45    0 -135    0
+
+    # 0 7 4 7
+    # 1 0 5 0
+    # 4 3 0 3
+    # 1 0 5 0
+
+    # 0 5 2
+    # 4 0 3
+    # 1 0 0
     def _eigen_components(self) -> list[tuple[float, np.ndarray]]:
-        return [
-            (0, np.array([[0.5, -0.5j], [0.5j, 0.5]])),
-            (1, np.array([[0.5, 0.5j], [-0.5j, 0.5]])),
-        ]
+        def prang(x):
+            print(np.round(np.angle(x) / 2 / np.pi * 360 % 360, 3))
+        d = self._dimension
+        if d not in YPowGate._eigencomponents:
+            components = []
+            root = 1j ** (2 / d)
+            prang(root)
+            for i in range(d):
+                #print(i)
+                vx = np.array([root ** (-2 * i * j) for j in range(d)])
+                mx = np.array([np.roll(vx, j) for j in range(d)])
+                vz = np.array([root ** ((d-j)*(d-j)) for j in range(d)])
+                mz = np.array([vz * root ** -((d-j)*(d-j)) for j in range(d)])
+                # prang(mx)
+                prang(mz)
+                m = np.multiply(mx, mz)
+                half_turns = i * 2 / d
+                components.append((half_turns, m / self._dimension))
+            YPowGate._eigencomponents[self._dimension] = components
+        return YPowGate._eigencomponents[self._dimension]
 
     def _trace_distance_bound_(self) -> float | None:
         if self._is_parameterized_():
