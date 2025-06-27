@@ -1367,6 +1367,14 @@ def prnd(arr):
     print(rnd(arr))
 
 
+def preig(g):
+    for k, v in g._eigen_components():
+        # print()
+        print(k)
+        prnd(v)
+
+
+
 # 100 +81  64 +49 36 +25 16 +9 4 +1
 #       0  10 +13  0  +7 16  0 4 +1
 
@@ -1374,73 +1382,57 @@ def prnd(arr):
 #     9  16    21 24  25
 #    25  16     9  4   1
 def test_thing():
-    for d in range(2,11):
-        print()
-
-        steps = 1
+    for d in range(2,5):
+        q = cirq.LineQid(0, dimension=d)
         def ang(x):
             y = np.round(x, 5)
             y[y == 0.] = 0
-            return (np.rint(np.angle(y) / np.pi * d % (2*d)))
+            return (np.rint(np.angle(y) / np.pi * d % (2 * d)))
+
         def prang(x):
             y = np.round(x, 5)
             y[y == 0.] = 0
-            print(np.rint(np.angle(y) / np.pi * d % (2*d)))
-        answer = np.zeros(shape=(d, d))
-
-        p = -1j ** (2 / d)
-        print(f'{np.rint(np.angle(p) / np.pi * d % (2*d))}/{d*2}')
-        for i in range(0, steps*d+1):
-            exp = i/steps
-            print()
-            print(exp)
-
-            def preig(g):
-                for k, v in g._eigen_components():
-                    #print()
-                    print(k)
-                    prnd(v)
-
-            q = cirq.LineQid(0, dimension=d)
-
-            # XYZ = iI
-            # Y = p * X**-1 * Z**-1
-            # XZ  = pp ZX
-            # X!Z!  = pp Z!X! ?? sure? dim3: XXZZ = pp XZXZ = 4p ZXXZ = 6p ZXZX = 8p ZZXX. Have to do n**2 commutations, is n**2 % (n+1) == 1? yes, n**2 = (n+1)(n-1)+1, which is 1 when modded by n+1 (or n-1)
-            # Y = p X!Z!
-            #   = ppp Z!X!
-            # X = p Z!Y! = ppp Y!Z! (i guess)
-            #
-            c1 = cirq.Circuit(cirq.IdentityGate(qid_shape=(d,))(q),[
-                cirq.GlobalPhaseGate(p).on(),
-                cirq.ZPowGate(dimension=d)(q) ** -1,
-                cirq.XPowGate(dimension=d)(q) ** -1,
-            ] * int(exp))
-            c2 = cirq.Circuit(cirq.IdentityGate(qid_shape=(d,))(q),[
-                cirq.GlobalPhaseGate(p.conjugate()).on(),
-                cirq.XPowGate(dimension=d)(q) ** -1,
-                cirq.ZPowGate(dimension=d)(q) ** -1,
-            ] * int(exp))
-            y = cirq.YPowGate(dimension=d, exponent=exp)
-            u1 = cirq.unitary(c1)
-            u2 = cirq.unitary(c2)
-            uy = cirq.unitary(y)
-            prang(uy)
-            #prang(u1)
-            # prang(u2)
-            answer = np.add(answer, ang(u1))
-            np.testing.assert_allclose(u1, uy, atol=1e-10)
+            print(np.rint(np.angle(y) / np.pi * d % (2 * d)))
 
         print()
+
+        p = -1j ** (2 / d)
+        print(f'dimension={d}')
+        print(f'phase={p}')
+        print(f'phase={np.rint(np.angle(p) / np.pi * d % (2*d))}/{d*2}')
+        x = cirq.XPowGate(dimension=d)
+        y = cirq.YPowGate(dimension=d)
+        z = cirq.ZPowGate(dimension=d)
+        xinv = x**-1
+        zinv = z**-1
+        ux = cirq.unitary(x)
+        uy = cirq.unitary(y)
+        uz = cirq.unitary(z)
+        uxinv = cirq.unitary(xinv)
+        uzinv = cirq.unitary(zinv)
+        uxyz = ux @ uy @ uz
+        upxyz = p.conjugate() * uxyz
+        uzxinv = uzinv @ uxinv
+        upzxinv = p.conjugate() * uzxinv
+        uxzinv = uxinv @ uzinv
+        upxzinv = p * uxzinv
+        np.testing.assert_allclose(upxzinv, upzxinv, atol=1e-10)
+        if d == 2:
+            #assert p == 1j
+            #np.testing.assert_allclose(uy, np.array([[0, -1j], [1j, 0]]), atol=1e-10)
+            pass
+        # np.testing.assert_allclose(upxzinv, uy, atol=1e-10)
+        # np.testing.assert_allclose(upxyz, np.eye(d), atol=1e-10)
+
+        answer = np.zeros(shape=(d, d), dtype=np.complex128)
+        inter = np.eye(d, dtype=np.complex128)
+        for exp in range(1, d+1):
+            inter = inter @ upxzinv
+            prnd(inter)
+            answer += inter
+            # XYZ = pI
+            # Y = pX!Z!
+            # pX!Z! = Y = p!Z!X!
+            # X = p Z!Y! = ppp Y!Z! (i guess)
         print('answer')
-        print(answer)
-        # prnd(abs(u1))
-        # prnd(abs(u2))
-    # prnd(np.abs(uc))
-    # for d in range(2, 5):
-    #     print()
-    #     preig(cirq.XPowGate(dimension=d))
-    #     print()
-    #     preig(cirq.YPowGate(dimension=d))
-    #     print()
-    #     # preig(cirq.ZPowGate(dimension=d))
+        prang(answer)
