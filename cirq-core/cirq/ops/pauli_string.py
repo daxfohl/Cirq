@@ -1131,11 +1131,16 @@ class SingleQubitPauliStringGateOperation(  # type: ignore
     def qubit(self) -> raw_types.Qid:
         return self._qubit
 
-    def _value_equality_values_(self):
-        return PauliString._value_equality_values_(self)
+    def _as_pauli_string(self) -> PauliString:
+        return PauliString(qubit_pauli_map={self.qubit: self.pauli} if self._exponent % 2 else {})
 
-    def _value_equality_values_cls_(self):
-        return PauliString._value_equality_values_cls_(self)
+    def __eq__(self, other):
+        if isinstance(other, PauliString):
+            return self._as_pauli_string() == other
+        return super().__eq__(other)
+
+    def __hash__(self):
+        return self._as_pauli_string().__hash__()
 
     def __pow__(self, exponent: cirq.TParamVal):
         if isinstance(exponent, int):
