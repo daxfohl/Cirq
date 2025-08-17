@@ -1101,7 +1101,6 @@ def _validate_qubit_mapping(
 
 
 # Ignoring type because mypy believes `with_qubits` methods are incompatible.
-@value.value_equality(manual_cls=True)
 class SingleQubitPauliStringGateOperation(  # type: ignore
     gate_operation.GateOperation, PauliString
 ):
