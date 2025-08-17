@@ -17,6 +17,7 @@ from __future__ import annotations
 import cmath
 import math
 import numbers
+from functools import cached_property
 from types import NotImplementedType
 from typing import (
     AbstractSet,
@@ -1113,7 +1114,7 @@ class SingleQubitPauliStringGateOperation(  # type: ignore
 
     def __init__(self, pauli: pauli_gates.Pauli, qubit: cirq.Qid, exponent: int = 1):
         PauliString.__init__(self, qubit_pauli_map={qubit: pauli} if exponent % 2 else {})
-        gate_operation.GateOperation.__init__(self, cast(raw_types.Gate, pauli**exponent), [qubit])
+        gate_operation.GateOperation.__init__(self, pauli**exponent, [qubit])
         self._pauli = pauli
         self._qubit = qubit
         self._exponent = exponent
@@ -1131,16 +1132,17 @@ class SingleQubitPauliStringGateOperation(  # type: ignore
     def qubit(self) -> raw_types.Qid:
         return self._qubit
 
+    @cached_property
     def _as_pauli_string(self) -> PauliString:
         return PauliString(qubit_pauli_map={self.qubit: self.pauli} if self._exponent % 2 else {})
 
     def __eq__(self, other):
         if isinstance(other, PauliString):
-            return self._as_pauli_string() == other
+            return self._as_pauli_string == other
         return super().__eq__(other)
 
     def __hash__(self):
-        return self._as_pauli_string().__hash__()
+        return hash(self._as_pauli_string)
 
     def __pow__(self, exponent: cirq.TParamVal):
         if isinstance(exponent, int):
