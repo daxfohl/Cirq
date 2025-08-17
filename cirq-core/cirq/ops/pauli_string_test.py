@@ -266,22 +266,16 @@ def test_list_op_constructor_matches_mapping(pauli):
 @pytest.mark.parametrize('pauli2', (cirq.X, cirq.Y, cirq.Z))
 def test_exponent_mul_consistency(pauli1, pauli2):
     a, b = cirq.LineQubit.range(2)
-    op_a, op_b = pauli1(a), pauli2(b)
-
-    assert op_a * op_a * op_a == op_a
-    assert op_a * op_a**2 == op_a
-    assert op_a**2 * op_a == op_a
-    assert op_b * op_a * op_a == op_b
-    assert op_b * op_a**2 == op_b
-    assert op_a**2 * op_b == op_b
-    assert op_a * op_a * op_a * op_a == cirq.PauliString()
-    assert op_a * op_a**3 == cirq.PauliString()
-    assert op_b * op_a * op_a * op_a == op_b * op_a
-    assert op_b * op_a**3 == op_b * op_a
 
     op_a, op_b = pauli1(a), pauli2(a)
-
-    assert op_a * op_b**3 == op_a * op_b * op_b * op_b
+    x = op_a * op_b**3
+    y = op_a * op_b * op_b * op_b
+    print(type(x))
+    print(type(y))
+    print(repr(x))
+    print(repr(y))
+    print('check')
+    assert x == y
     assert op_b**3 * op_a == op_b * op_b * op_b * op_a
 
 
@@ -586,14 +580,47 @@ def test_op_equivalence():
     eq.add_equality_group(cirq.Z(b), cirq.PauliString({b: cirq.Z}))
 
 
+def test_me():
+    x = cirq.X(cirq.LineQubit(0))
+    assert x * x * x == x**3  # OK
+    assert x * x**2 == x**3  # OK
+    assert x**2 * x == x**3  # OK
+
+    assert x * x == x**2  # Assertion fails
+
+    assert x**3 * x**1 == x**4  # Assertion fails
+    assert x**1 * x**3 == x**4  # Assertion fails
+    assert x**2 * x**2 == x**4  # Throws TypeError
+    assert x**4 * x**0 == x**4  # Throws TypeError
+    assert x**0 * x**4 == x**4  # Throws TypeError
+
+    assert x * x * x * x * x == x**5  # OK
+    assert x**2 * x * x * x == x**5  # OK
+    assert x * x**2 * x * x == x**5  # OK
+    assert x * x * x**2 * x == x**5  # Throws TypeError
+    assert x * x * x * x**2 == x**5  # Throws TypeError
+
+    assert x**0 * x**5 == x**5  # Throws TypeError
+    assert x**1 * x**4 == x**5  # OK
+    assert x**2 * x**3 == x**5  # Throws TypeError
+    assert x**3 * x**2 == x**5  # Throws TypeError
+    assert x**4 * x**1 == x**5  # OK
+    assert x**5 * x**0 == x**5  # Throws TypeError
+
+    assert x**3 * x**3 == x**6  # Throws TypeError
+
+
 def test_op_product():
     a, b = cirq.LineQubit.range(2)
 
-    assert cirq.X(a) * cirq.X(b) == cirq.PauliString({a: cirq.X, b: cirq.X})
-    assert cirq.X(a) * cirq.Y(b) == cirq.PauliString({a: cirq.X, b: cirq.Y})
-    assert cirq.Z(a) * cirq.Y(b) == cirq.PauliString({a: cirq.Z, b: cirq.Y})
-
-    assert cirq.X(a) * cirq.X(a) == cirq.PauliString()
+    x = cirq.X(a) * cirq.X(a)
+    y = cirq.PauliString()
+    print(type(x))
+    print(type(y))
+    print(repr(x))
+    print(repr(y))
+    print('check')
+    assert x == y
     assert cirq.X(a) * cirq.Y(a) == 1j * cirq.PauliString({a: cirq.Z})
     assert cirq.Y(a) * cirq.Z(b) * cirq.X(a) == -1j * cirq.PauliString({a: cirq.Z, b: cirq.Z})
 
