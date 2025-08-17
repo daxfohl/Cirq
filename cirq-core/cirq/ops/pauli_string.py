@@ -1100,21 +1100,6 @@ def _validate_qubit_mapping(
         )
 
 
-def _try_interpret_as_pauli_string(op: Any) -> SingleQubitPauliStringGateOperation | None:
-    """Return a representation of an operation as a pauli string, if it is possible."""
-    if isinstance(op, gate_operation.GateOperation):
-        gates = {
-            common_gates.XPowGate: pauli_gates.X,
-            common_gates.YPowGate: pauli_gates.Y,
-            common_gates.ZPowGate: pauli_gates.Z,
-        }
-        if (pauli := gates.get(type(op.gate), None)) is not None:
-            exponent = op.gate.exponent  # type: ignore
-            if exponent % 1 == 0:
-                return SingleQubitPauliStringGateOperation(pauli, op.qubits[0], int(exponent))
-    return None
-
-
 # Ignoring type because mypy believes `with_qubits` methods are incompatible.
 @value.value_equality(manual_cls=True)
 class SingleQubitPauliStringGateOperation(  # type: ignore
@@ -1131,6 +1116,7 @@ class SingleQubitPauliStringGateOperation(  # type: ignore
         PauliString.__init__(self, qubit_pauli_map={qubit: pauli} if exponent % 2 else {})
         gate_operation.GateOperation.__init__(self, cast(raw_types.Gate, pauli**exponent), [qubit])
         self._pauli = pauli
+        self._qubit = qubit
         self._exponent = int(exponent)
 
     def with_qubits(self, *new_qubits: cirq.Qid) -> SingleQubitPauliStringGateOperation:
@@ -1144,11 +1130,7 @@ class SingleQubitPauliStringGateOperation(  # type: ignore
 
     @property
     def qubit(self) -> raw_types.Qid:
-        assert len(self.qubits) == 1
-        return self.qubits[0]
-
-    def _as_pauli_string(self) -> PauliString:
-        return PauliString(qubit_pauli_map={self.qubit: self.pauli} if self._exponent % 2 else {})
+        return self._qubit
 
     def _value_equality_values_(self):
         return PauliString._value_equality_values_(self)
@@ -1164,27 +1146,22 @@ class SingleQubitPauliStringGateOperation(  # type: ignore
         return super().__pow__(exponent)
 
     def __mul__(self, other):
-        if isinstance(other, SingleQubitPauliStringGateOperation):
-            if other._pauli == self._pauli and other.qubit == self.qubit:
-                return SingleQubitPauliStringGateOperation(
-                    self._pauli, self.qubit, self._exponent + other._exponent
-                )
-            return self._as_pauli_string() * other._as_pauli_string()
+        if (
+            isinstance(other, SingleQubitPauliStringGateOperation)
+            and other._pauli == self._pauli
+            and other._qubit == self._qubit
+        ):
+            return SingleQubitPauliStringGateOperation(
+                self._pauli, self._qubit, self._exponent + other._exponent
+            )
         if isinstance(other, (PauliString, numbers.Complex)):
-            return self._as_pauli_string() * other
-        if (as_pauli_string := _try_interpret_as_pauli_string(other)) is not None:
-            return self * as_pauli_string
+            return PauliString.__mul__(self, other)
         return NotImplemented
 
     def __rmul__(self, other):
         if isinstance(other, (PauliString, numbers.Complex)):
-            return other * self._as_pauli_string()
-        if (as_pauli_string := _try_interpret_as_pauli_string(other)) is not None:
-            return as_pauli_string * self
+            return PauliString.__rmul__(self, other)
         return NotImplemented
-
-    def __neg__(self):
-        return -self._as_pauli_string()
 
     def _json_dict_(self) -> dict[str, Any]:
         return protocols.obj_to_dict_helper(self, ['pauli', 'qubit'])
