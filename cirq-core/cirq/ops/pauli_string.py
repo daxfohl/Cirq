@@ -1116,7 +1116,7 @@ class SingleQubitPauliStringGateOperation(  # type: ignore
         gate_operation.GateOperation.__init__(self, cast(raw_types.Gate, pauli**exponent), [qubit])
         self._pauli = pauli
         self._qubit = qubit
-        self._exponent = int(exponent)
+        self._exponent = exponent
 
     def with_qubits(self, *new_qubits: cirq.Qid) -> SingleQubitPauliStringGateOperation:
         if len(new_qubits) != 1:
@@ -1140,7 +1140,7 @@ class SingleQubitPauliStringGateOperation(  # type: ignore
     def __pow__(self, exponent: cirq.TParamVal):
         if isinstance(exponent, int):
             return SingleQubitPauliStringGateOperation(
-                self._pauli, self.qubit, self._exponent * exponent
+                self._pauli, self._qubit, self._exponent * exponent
             )
         return super().__pow__(exponent)
 
@@ -1153,14 +1153,10 @@ class SingleQubitPauliStringGateOperation(  # type: ignore
             return SingleQubitPauliStringGateOperation(
                 self._pauli, self._qubit, self._exponent + other._exponent
             )
-        if isinstance(other, (PauliString, numbers.Complex)):
-            return PauliString.__mul__(self, other)
-        return NotImplemented
+        return PauliString.__mul__(self, other)
 
     def __rmul__(self, other):
-        if isinstance(other, (PauliString, numbers.Complex)):
-            return PauliString.__rmul__(self, other)
-        return NotImplemented
+        return PauliString.__rmul__(self, other)
 
     def _json_dict_(self) -> dict[str, Any]:
         return protocols.obj_to_dict_helper(self, ['pauli', 'qubit'])
