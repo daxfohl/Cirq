@@ -483,11 +483,14 @@ class Gate(metaclass=value.ABCMetaImplementAnyOneOf):
 
     def _mul_with_qubits(self, qubits: tuple[cirq.Qid, ...], other):
         """cirq.GateOperation.__mul__ delegates to this method."""
-        return NotImplemented
+        return NotImplemented if (ps := self._to_ps(qubits)) is None else ps * other
 
     def _rmul_with_qubits(self, qubits: tuple[cirq.Qid, ...], other):
         """cirq.GateOperation.__rmul__ delegates to this method."""
-        return NotImplemented
+        return NotImplemented if (ps := self._to_ps(qubits)) is None else other * ps
+
+    def _to_ps(self, qubits: tuple[cirq.Qid, ...]) -> cirq.PauliString | None:
+        return ops.pauli_string._try_interpret_as_pauli_string(self, qubits)
 
     def _json_dict_(self) -> dict[str, Any]:
         return protocols.obj_to_dict_helper(self, attribute_names=[])

@@ -267,9 +267,7 @@ class PauliString(raw_types.Operation, Generic[TKey]):
 
     def __mul__(self, other):
         known = False
-        if isinstance(other, raw_types.Operation) and isinstance(other.gate, identity.IdentityGate):
-            known = True
-        elif isinstance(other, (PauliString, numbers.Number)):
+        if isinstance(other, (PauliString, numbers.Number)):
             known = True
         if known:
             return PauliString(
@@ -294,9 +292,6 @@ class PauliString(raw_types.Operation, Generic[TKey]):
             return PauliString(
                 qubit_pauli_map=self._qubit_pauli_map, coefficient=self._coefficient * other
             )
-
-        if isinstance(other, raw_types.Operation) and isinstance(other.gate, identity.IdentityGate):
-            return self  # pragma: no cover
 
         # Note: PauliString case handled by __mul__.
         return NotImplemented
@@ -1100,21 +1095,22 @@ def _validate_qubit_mapping(
         )
 
 
-def _try_interpret_as_pauli_string(op: Any):
-    """Return a reprepresentation of an operation as a pauli string, if it is possible."""
-    if isinstance(op, gate_operation.GateOperation):
-        gates = {
-            common_gates.XPowGate: pauli_gates.X,
-            common_gates.YPowGate: pauli_gates.Y,
-            common_gates.ZPowGate: pauli_gates.Z,
-        }
-        if (pauli := gates.get(type(op.gate), None)) is not None:
-            exponent = op.gate.exponent  # type: ignore
-            if exponent % 2 == 0:
-                return PauliString()
-            if exponent % 2 == 1:
-                return pauli.on(op.qubits[0])
-    return None
+def _try_interpret_as_pauli_string(
+    val: Any, qubits: Sequence[cirq.Qid] | None = None
+) -> PauliString | None:
+    """Return a representation of a value as a pauli string, if it is possible."""
+    if qubits is None and isinstance(val, raw_types.Operation):
+        qubits = val.qubits
+
+    if qubits is None:
+        return None
+
+    expansion = protocols.pauli_expansion(val, default=None)
+    if expansion is None or len(expansion) != 1:
+        return None
+
+    pauli, coefficient = next(iter(expansion.items()))
+    return PauliString(dict(zip(qubits, pauli)), coefficient=coefficient)
 
 
 # Ignoring type because mypy believes `with_qubits` methods are incompatible.
@@ -1150,22 +1146,6 @@ class SingleQubitPauliStringGateOperation(  # type: ignore
 
     def _as_pauli_string(self) -> PauliString:
         return PauliString(qubit_pauli_map={self.qubit: self.pauli})
-
-    def __mul__(self, other):
-        if isinstance(other, SingleQubitPauliStringGateOperation):
-            return self._as_pauli_string() * other._as_pauli_string()
-        if isinstance(other, (PauliString, numbers.Complex)):
-            return self._as_pauli_string() * other
-        if (as_pauli_string := _try_interpret_as_pauli_string(other)) is not None:
-            return self * as_pauli_string
-        return NotImplemented
-
-    def __rmul__(self, other):
-        if isinstance(other, (PauliString, numbers.Complex)):
-            return other * self._as_pauli_string()
-        if (as_pauli_string := _try_interpret_as_pauli_string(other)) is not None:
-            return as_pauli_string * self
-        return NotImplemented
 
     def __neg__(self):
         return -self._as_pauli_string()
