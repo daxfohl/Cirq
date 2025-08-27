@@ -266,14 +266,9 @@ class PauliString(raw_types.Operation, Generic[TKey]):
         pass
 
     def __mul__(self, other):
-        known = False
         if isinstance(other, (PauliString, numbers.Number)):
-            known = True
-        if known:
             return PauliString(
-                cast(PAULI_STRING_LIKE, other),
-                qubit_pauli_map=self._qubit_pauli_map,
-                coefficient=self.coefficient,
+                other, qubit_pauli_map=self._qubit_pauli_map, coefficient=self.coefficient
             )
         return NotImplemented
 
@@ -1126,14 +1121,12 @@ class SingleQubitPauliStringGateOperation(  # type: ignore
 
     def __init__(self, pauli: pauli_gates.Pauli, qubit: cirq.Qid):
         PauliString.__init__(self, qubit_pauli_map={qubit: pauli})
-        gate_operation.GateOperation.__init__(self, cast(raw_types.Gate, pauli), [qubit])
+        gate_operation.GateOperation.__init__(self, pauli, [qubit])
 
     def with_qubits(self, *new_qubits: cirq.Qid) -> SingleQubitPauliStringGateOperation:
         if len(new_qubits) != 1:
             raise ValueError("len(new_qubits) != 1")
-        return SingleQubitPauliStringGateOperation(
-            cast(pauli_gates.Pauli, self.gate), new_qubits[0]
-        )
+        return SingleQubitPauliStringGateOperation(self.pauli, new_qubits[0])
 
     @property
     def pauli(self) -> pauli_gates.Pauli:
