@@ -504,6 +504,25 @@ class YPowGate(eigen_gate.EigenGate):
     ) -> list[cirq.Operation] | NotImplementedType:
         return _extract_phase(self, YPowGate, qubits, context)
 
+    def controlled(
+        self,
+        num_controls: int | None = None,
+        control_values: cv.AbstractControlValues | Sequence[int | Collection[int]] | None = None,
+        control_qid_shape: tuple[int, ...] | None = None,
+    ) -> raw_types.Gate:
+        result = super().controlled(num_controls, control_values, control_qid_shape)
+        if (
+            self._global_shift == 0
+            and isinstance(result, controlled_gate.ControlledGate)
+            and isinstance(result.control_values, cv.ProductOfSums)
+            and result.control_values.is_trivial
+        ):
+            if result.control_qid_shape == (2,):
+                return CYPowGate(exponent=self._exponent)
+            if result.control_qid_shape == (2, 2):
+                return CCYPowGate(exponent=self._exponent)
+        return result
+
 
 class Ry(YPowGate):
     r"""A gate with matrix $e^{-i Y t/2}$ that rotates around the Y axis of the Bloch sphere by $t$.
@@ -1375,6 +1394,144 @@ class CXPowGate(eigen_gate.EigenGate):
         )
 
 
+class CYPowGate(eigen_gate.EigenGate):
+    def _num_qubits_(self) -> int:
+        return 2
+
+    def _decompose_into_clifford_with_qubits_(self, qubits):
+        from cirq.ops.pauli_interaction_gate import PauliInteractionGate
+
+        if self.exponent % 2 == 1:
+            return PauliInteractionGate.CNOT.on(*qubits)
+        if self.exponent % 2 == 0:
+            return []
+        return NotImplemented  # pragma: no cover
+
+    def _decompose_(self, qubits):
+        c, t = qubits
+        yield XPowGate(exponent=0.5).on(t)
+        yield cirq.CZPowGate(exponent=self._exponent, global_shift=self.global_shift).on(c, t)
+        yield XPowGate(exponent=-0.5).on(t)
+
+    def _eigen_components(self) -> list[tuple[float, np.ndarray]]:
+        return [
+            (0, np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0.5, -0.5j], [0, 0, 0.5j, 0.5]])),
+            (1, np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0.5, 0.5j], [0, 0, -0.5j, 0.5]])),
+        ]
+
+    def _trace_distance_bound_(self) -> float | None:
+        raise ValueError()
+        if self._is_parameterized_():
+            return None
+        return abs(np.sin(self._exponent * 0.5 * np.pi))
+
+    def _circuit_diagram_info_(self, args: cirq.CircuitDiagramInfoArgs) -> cirq.CircuitDiagramInfo:
+        return protocols.CircuitDiagramInfo(
+            wire_symbols=('@', 'Y'), exponent=self._diagram_exponent(args), exponent_qubit_index=1
+        )
+
+    def _pauli_expansion_(self) -> value.LinearDict[str]:
+        raise ValueError()
+        if protocols.is_parameterized(self):
+            return NotImplemented
+        global_phase = 1j ** (2 * self._exponent * self._global_shift)
+        cnot_phase = 1j**self._exponent
+        c = -1j * cnot_phase * np.sin(np.pi * self._exponent / 2) / 2
+        return value.LinearDict(
+            {
+                'II': global_phase * (1 - c),
+                'IX': global_phase * c,
+                'ZI': global_phase * c,
+                'ZX': global_phase * -c,
+            }
+        )
+
+    def controlled(
+        self,
+        num_controls: int | None = None,
+        control_values: cv.AbstractControlValues | Sequence[int | Collection[int]] | None = None,
+        control_qid_shape: tuple[int, ...] | None = None,
+    ) -> raw_types.Gate:
+        """Returns a controlled `CXPowGate`, using a `CCXPowGate` where possible.
+
+        The `controlled` method of the `Gate` class, of which this class is a
+        child, returns a `ControlledGate`. This method overrides this behavior
+        to return a `CCXPowGate` or a `ControlledGate` of a `CCXPowGate`, when
+        this is possible.
+
+        The conditions for the override to occur are:
+
+        * The `global_shift` of the `CXPowGate` is 0.
+        * The `control_values` and `control_qid_shape` are compatible with
+            the `CCXPowGate`:
+            * The last value of `control_qid_shape` is a qubit.
+            * The last value of `control_values` corresponds to the
+                control being satisfied if that last qubit is 1 and
+                not satisfied if the last qubit is 0.
+
+        If these conditions are met, then the returned object is a `CCXPowGate`
+        or, in the case that there is more than one controlled qudit, a
+        `ControlledGate` with the `Gate` being a `CCXPowGate`. In the
+        latter case the `ControlledGate` is controlled by one less qudit
+        than specified in `control_values` and `control_qid_shape` (since
+        one of these, the last qubit, is used as the control for the
+        `CCXPowGate`).
+
+        If the above conditions are not met, a `ControlledGate` of this
+        gate will be returned.
+
+        Args:
+            num_controls: Total number of control qubits.
+            control_values: Which control computational basis state to apply the
+                sub gate.  A sequence of length `num_controls` where each
+                entry is an integer (or set of integers) corresponding to the
+                computational basis state (or set of possible values) where that
+                control is enabled.  When all controls are enabled, the sub gate is
+                applied.  If unspecified, control values default to 1.
+            control_qid_shape: The qid shape of the controls.  A tuple of the
+                expected dimension of each control qid.  Defaults to
+                `(2,) * num_controls`.  Specify this argument when using qudits.
+
+        Returns:
+            A `cirq.ControlledGate` (or `cirq.CCXPowGate` if possible) representing
+                `self` controlled by the given control values and qubits.
+        """
+        result = super().controlled(num_controls, control_values, control_qid_shape)
+        if self._global_shift != 0 or not isinstance(result, controlled_gate.ControlledGate):
+            return result
+        return YPowGate(exponent=self.exponent).controlled(
+            num_controls=result.num_controls() + 1,
+            control_values=result.control_values & cv.ProductOfSums([1]),
+            control_qid_shape=result.control_qid_shape + (2,),
+        )
+
+    def _qasm_(self, args: cirq.QasmArgs, qubits: tuple[cirq.Qid, ...]) -> str | None:
+        if self._exponent != 1:
+            return None  # Don't have an equivalent gate in QASM
+        args.validate_version('2.0', '3.0')
+        return args.format('cy {0},{1};\n', qubits[0], qubits[1])
+
+    def _has_stabilizer_effect_(self) -> bool | None:
+        if self._is_parameterized_():
+            return None
+        return self.exponent % 1 == 0
+
+    def __str__(self) -> str:
+        if self._exponent == 1:
+            return 'CY'
+        return f'CY**{self._exponent!r}'
+
+    def __repr__(self) -> str:
+        if self._global_shift == 0:
+            if self._exponent == 1:
+                return 'cirq.CY'
+            return f'(cirq.CY**{proper_repr(self._exponent)})'
+        return (
+            f'cirq.CYPowGate(exponent={proper_repr(self._exponent)}, '
+            f'global_shift={self._global_shift!r})'
+        )
+
+
 def rx(rads: value.TParamVal) -> Rx:
     """Returns a gate with the matrix $e^{-i X t / 2}$ where $t=rads$."""
     return Rx(rads=rads)
@@ -1499,6 +1656,112 @@ document(
     $$
     """,
 )
+
+CY = CYPowGate()
+
+
+class CCYPowGate(gate_features.InterchangeableQubitsGate, eigen_gate.EigenGate):
+    def _eigen_components(self) -> list[tuple[float, np.ndarray]]:
+        from cirq import linalg
+        return [
+            (0, linalg.block_diag(np.diag([1, 1, 1, 1, 1, 1]), np.array([[0.5, -0.5j], [0.5j, 0.5]]))),
+            (
+                1,
+                linalg.block_diag(
+                    np.diag([0, 0, 0, 0, 0, 0]), np.array([[0.5, 0.5j], [-0.5j, 0.5]])
+                ),
+            ),
+        ]
+
+    def _trace_distance_bound_(self) -> float | None:
+        raise ValueError()
+        if self._is_parameterized_():
+            return None
+        return abs(np.sin(self._exponent * 0.5 * np.pi))
+
+    def _pauli_expansion_(self) -> value.LinearDict[str]:
+        raise ValueError()
+        if protocols.is_parameterized(self):
+            return NotImplemented
+        global_phase = 1j ** (2 * self._exponent * self._global_shift)
+        z_phase = 1j**self._exponent
+        c = -1j * z_phase * np.sin(np.pi * self._exponent / 2) / 4
+        return value.LinearDict(
+            {
+                'III': global_phase * (1 - c),
+                'IIX': global_phase * c,
+                'IZI': global_phase * c,
+                'ZII': global_phase * c,
+                'ZZI': global_phase * -c,
+                'ZIX': global_phase * -c,
+                'IZX': global_phase * -c,
+                'ZZX': global_phase * c,
+            }
+        )
+
+    def qubit_index_to_equivalence_group_key(self, index) -> int:
+        return 1 if index < 2 else 0
+
+    def _decompose_(self, qubits):
+        c1, c2, t = qubits
+        from cirq import CCZPowGate
+
+        yield XPowGate(exponent=0.5).on(t)
+        yield CCZPowGate(exponent=self._exponent, global_shift=self.global_shift).on(c1, c2, t)
+        yield XPowGate(exponent=-0.5).on(t)
+
+    def _circuit_diagram_info_(self, args: cirq.CircuitDiagramInfoArgs) -> cirq.CircuitDiagramInfo:
+        return protocols.CircuitDiagramInfo(
+            ('@', '@', 'Y'), exponent=self._diagram_exponent(args), exponent_qubit_index=2
+        )
+
+    def _qasm_(self, args: cirq.QasmArgs, qubits: tuple[cirq.Qid, ...]) -> str | None:
+        if self._exponent != 1:
+            return None
+
+        args.validate_version('2.0', '3.0')
+        return args.format('ccy {0},{1},{2};\n', qubits[0], qubits[1], qubits[2])
+
+    def __repr__(self) -> str:
+        if self._global_shift == 0:
+            if self._exponent == 1:
+                return 'cirq.CCY'
+            return f'(cirq.CCY**{proper_repr(self._exponent)})'
+        return (
+            f'cirq.CCYPowGate(exponent={proper_repr(self._exponent)}, '
+            f'global_shift={self._global_shift!r})'
+        )
+
+    def __str__(self) -> str:
+        if self._exponent == 1:
+            return 'CCY'
+        return f'CCY**{self._exponent}'
+
+    def _num_qubits_(self) -> int:
+        return 3
+
+    def controlled(
+        self,
+        num_controls: int | None = None,
+        control_values: cv.AbstractControlValues | Sequence[int | Collection[int]] | None = None,
+        control_qid_shape: tuple[int, ...] | None = None,
+    ) -> raw_types.Gate:
+        if num_controls == 0:
+            return self
+        sub_gate: cirq.Gate = self
+        if self._global_shift == 0:
+            sub_gate = controlled_gate.ControlledGate(
+                YPowGate(exponent=self._exponent), num_controls=2
+            )
+        return controlled_gate.ControlledGate(
+            sub_gate,
+            num_controls=num_controls,
+            control_values=control_values,
+            control_qid_shape=control_qid_shape,
+        )
+
+
+CCY = CCYPowGate()
 
 
 def _phased_x_or_pauli_gate(
